@@ -803,7 +803,7 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
             <div>
               <label className="text-xs font-black text-gray-600 block mb-2">카테고리 선택</label>
               <div className="flex flex-wrap gap-2">
-                {Object.keys(YT_CATEGORY_IDS).map(cat=>{
+                {Object.keys(CAT_KEYWORDS).map(cat=>{
                   const color = TAXONOMY[cat]?.color||"#888";
                   const isActive = selectedCat===cat;
                   return (
