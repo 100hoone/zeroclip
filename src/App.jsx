@@ -68,24 +68,7 @@ const toViewsNum = v => {
   return parseFloat(v)||0;
 };
 
-const INIT_DATA = [
-  { id:1,  title:"SS급 인테리어 템을 만든 아들",              channel:"썰파자",       views:"1618만", multiplier:"×21.7", mainCat:"노하우/스타일",    subCat:"인테리어DIY",   daysAgo:"10개월 전", url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/inter1/400/600",    bookmarked:false, memo:"", script:"", tags:[], myViews:"" },
-  { id:2,  title:"이케아의 실수",                             channel:"무수탱",       views:"1720만", multiplier:"×13.1", mainCat:"노하우/스타일",    subCat:"인테리어DIY",   daysAgo:"5개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/ikea2/400/600",     bookmarked:false, memo:"", script:"", tags:[], myViews:"" },
-  { id:3,  title:"국밥집에서 죽을 파는 이유",                 channel:"땡순",         views:"1490만", multiplier:"×10.4", mainCat:"인물/블로그",      subCat:"스토리텔링",    daysAgo:"1년 전",    url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/food3/400/600",     bookmarked:true,  memo:"국밥 스토리 포맷 참고", script:"정심마다 오는 이상한 손님이 하나 있었습니다.\n\n그 손님은 국밥 시켜 놓고 한 술도 먹지 않고 나가 버렸죠.\n\n사장님이 이상해서 다음날 카메라를 설치했는데…\n\n알고 보니 그 손님은 국밥을 시켜 놓고 사진만 찍고 나간 거였습니다.", tags:["💡아이디어메모"], myViews:"" },
-  { id:4,  title:"스타벅스 음료 양의 비밀",                   channel:"구독행운",     views:"818만",  multiplier:"×30.1", mainCat:"인물/블로그",      subCat:"반응영상",      daysAgo:"3개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/starbucks11/400/600",bookmarked:false, memo:"", script:"", tags:[], myViews:"" },
-  { id:5,  title:"다이소도 예상 못한 미친 활용법",            channel:"살림팅팅팅",   views:"888만",  multiplier:"×16",   mainCat:"노하우/스타일",    subCat:"생활꿀팁",      daysAgo:"3개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/daiso9/400/600",    bookmarked:false, memo:"", script:"", tags:["🔥급하게쓸것"], myViews:"" },
-  { id:6,  title:"한국 화장 도구에 짜증내는 외국인",          channel:"화장연구소",   views:"689만",  multiplier:"×31",   mainCat:"노하우/스타일",    subCat:"뷰티/메이크업", daysAgo:"2개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/beauty15/400/600",  bookmarked:false, memo:"", script:"", tags:[], myViews:"" },
-  { id:7,  title:"이 장면 때문에 드라마 재방송 금지됨",       channel:"드라마썰",     views:"2100만", multiplier:"×44.2", mainCat:"영화 및 애니메이션",subCat:"국내드라마",    daysAgo:"2개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/drama1/400/600",    bookmarked:true,  memo:"훅 구조 완벽함", script:"방송사가 절대 재방송 안 시키는 드라마 장면이 있습니다.\n\n이유는 단 하나.\n\n촬영 당시엔 몰랐는데, 방영 후에 실제 사건과 내용이 겹쳐버린 겁니다.\n\n결국 해당 회차는 공식 스트리밍에서도 내려갔습니다.", tags:["⭐베스트레퍼"], myViews:"320만" },
-  { id:8,  title:"오징어게임 제작진이 숨긴 디테일들",         channel:"넷플사냥꾼",   views:"1850만", multiplier:"×38.5", mainCat:"영화 및 애니메이션",subCat:"국내드라마",    daysAgo:"1개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/squid1/400/600",    bookmarked:false, memo:"", script:"", tags:[], myViews:"" },
-  { id:9,  title:"조선시대 왕들이 절대 못했던 것",            channel:"역사탐험대",   views:"2300만", multiplier:"×47.8", mainCat:"교육",             subCat:"역사",          daysAgo:"1개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/history1/400/600",  bookmarked:false, memo:"", script:"", tags:["🔥급하게쓸것"], myViews:"" },
-  { id:10, title:"일본이 한국 음식 따라하다 역관광 당한 사건",channel:"국뽕채널",     views:"1980만", multiplier:"×41.2", mainCat:"인물/블로그",      subCat:"국뽕/해외반응", daysAgo:"2개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/korea1/400/600",    bookmarked:false, memo:"", script:"", tags:[], myViews:"" },
-  { id:11, title:"버려진 강아지가 집 앞에서 기다리는 이유",   channel:"동물감동",     views:"1750만", multiplier:"×36.3", mainCat:"반려동물/동물",    subCat:"강아지",        daysAgo:"1개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/dog1/400/600",      bookmarked:false, memo:"", script:"", tags:[], myViews:"" },
-  { id:12, title:"트럼프가 한국 욕하다 역풍맞은 순간",        channel:"해외이슈모음", views:"1560만", multiplier:"×32.4", mainCat:"뉴스/정치",        subCat:"해외이슈",      daysAgo:"2개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/trump1/400/600",    bookmarked:false, memo:"", script:"", tags:[], myViews:"" },
-  { id:13, title:"손흥민 국대에서 저평가받는 진짜 이유",      channel:"축구썰",       views:"1430만", multiplier:"×29.7", mainCat:"스포츠",           subCat:"축구",          daysAgo:"1개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/soccer1/400/600",   bookmarked:false, memo:"", script:"", tags:[], myViews:"" },
-  { id:14, title:"아이유 콘서트 이 장면에서 팬들 울었다",     channel:"아이유팬채널", views:"1890만", multiplier:"×39.3", mainCat:"음악",             subCat:"무대클립",      daysAgo:"3개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/music1/400/600",    bookmarked:false, memo:"", script:"", tags:[], myViews:"" },
-  { id:15, title:"실제로 시간이 빠르게 가는 이유",            channel:"뇌과학tv",     views:"1320만", multiplier:"×27.5", mainCat:"과학기술",         subCat:"우주/천문",     daysAgo:"3개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/science1/400/600",  bookmarked:false, memo:"", script:"", tags:[], myViews:"" },
-  { id:16, title:"원피스 루피가 실제로 강한 이유",            channel:"애니썰왕",     views:"1400만", multiplier:"×28.9", mainCat:"영화 및 애니메이션",subCat:"일본애니",      daysAgo:"3개월 전",  url:"https://youtube.com/shorts/", thumbnail:"https://picsum.photos/seed/onepiece1/400/600", bookmarked:false, memo:"", script:"", tags:[], myViews:"" },
-];
+const INIT_DATA = [];
 
 // ─────────────────────────────────────────────
 // 유틸 훅
@@ -557,10 +540,12 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
 const ChannelFetchModal = ({ apiKey, onAdd, onClose }) => {
   const [channelUrl, setChannelUrl] = useState("");
   const [maxResults, setMaxResults] = useState(20);
+  const [selectedCat, setSelectedCat] = useState("전체");
   const [loading, setLoading]       = useState(false);
   const [preview, setPreview]       = useState([]);
   const [error, setError]           = useState("");
   const [step, setStep]             = useState("input");
+  const mainCats = Object.keys(TAXONOMY);
 
   const extractChannelId = async (url) => {
     const cleanUrl = url.split("?")[0].trim();
@@ -598,7 +583,7 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose }) => {
         const viewsStr = views>=10000000?`${(views/10000000).toFixed(1)}천만`:views>=1000000?`${(views/1000000).toFixed(0)}백만`:views>=10000?`${Math.round(views/10000)}만`:`${views}`;
         const daysDiff = Math.floor((Date.now()-new Date(v.snippet.publishedAt))/86400000);
         const daysAgo = daysDiff===0?"오늘":daysDiff<=3?`${daysDiff}일 전`:daysDiff<=14?"1주일 전":daysDiff<=45?"1개월 전":daysDiff<=75?"2개월 전":daysDiff<=105?"3개월 전":daysDiff<=210?"6개월 전":daysDiff<=395?"1년 전":"2년 전";
-        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multiplier}`, mainCat:"전체", subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
+        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multiplier}`, mainCat:selectedCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
       })||[];
       setPreview(cards); setStep("preview");
     } catch(e) { setError("수집 중 오류가 발생했어요. API 키나 채널 URL을 확인해주세요."); }
@@ -621,6 +606,13 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose }) => {
               <label className="text-xs font-black text-gray-600 block mb-2">채널 URL</label>
               <input value={channelUrl} onChange={e=>setChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@채널명"
                 className="w-full text-sm border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-gray-400"/>
+            </div>
+            <div>
+              <label className="text-xs font-black text-gray-600 block mb-2">카테고리 설정 (수집된 카드에 일괄 적용)</label>
+              <select value={selectedCat} onChange={e=>setSelectedCat(e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white">
+                {mainCats.map(c=><option key={c}>{TAXONOMY[c]?.emoji} {c}</option>)}
+              </select>
             </div>
             <div>
               <label className="text-xs font-black text-gray-600 block mb-2">가져올 영상 수</label>
@@ -1537,7 +1529,7 @@ const Dashboard = ({ cards, allTags }) => {
 // ─────────────────────────────────────────────
 // 비디오 카드
 // ─────────────────────────────────────────────
-const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, onTag, onMyViews, allTags }) => {
+const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, onTag, onMyViews, onDelete, allTags }) => {
   const color = TAXONOMY[item.mainCat]?.color||"#374151";
   return (
     <div
@@ -1555,6 +1547,8 @@ const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, o
           <span className="text-sm">{item.bookmarked?"★":"☆"}</span>
         </button>
         {isSelected&&<div className="absolute top-10 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black" style={{backgroundColor:color}}>✓</div>}
+        <button onClick={e=>{e.stopPropagation();if(window.confirm("이 카드를 삭제할까요?"))onDelete(item.id);}}
+          className="absolute bottom-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-black/50 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500">✕</button>
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="w-11 h-11 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
             <svg className="w-4 h-4 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
@@ -1655,6 +1649,7 @@ export default function ZeroClip() {
   const saveTags       = (id,tags)   => setCards(p=>p.map(c=>c.id===id?{...c,tags}:c));
   const saveMyViews    = (id,myViews)=> setCards(p=>p.map(c=>c.id===id?{...c,myViews}:c));
   const addCard        = card => setCards(p=>[card,...p]);
+  const deleteCard     = id   => setCards(p=>p.filter(c=>c.id!==id));
 
   const filtered = cards
     .filter(item=>{
@@ -1792,12 +1787,12 @@ export default function ZeroClip() {
               <p className="font-bold text-lg">결과가 없어요</p>
             </div>
           ):(
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(190px, 1fr))",gap:"16px"}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(190px, 1fr))",gap:"16px",alignItems:"start"}}>
               {filtered.map(item=>(
                 <VideoCard key={item.id} item={item}
                   onSelect={toggleSelect} isSelected={selectedIds.includes(item.id)}
                   onBookmark={toggleBookmark} onMemo={setMemoTarget} onScript={setScriptTarget}
-                  onTag={setTagTarget} onMyViews={setMyViewsTarget} allTags={allTags}/>
+                  onTag={setTagTarget} onMyViews={setMyViewsTarget} onDelete={deleteCard} allTags={allTags}/>
               ))}
             </div>
           )}
