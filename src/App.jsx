@@ -726,21 +726,21 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose }) => {
 // ─────────────────────────────────────────────
 // 카테고리 자동 수집 모달
 // ─────────────────────────────────────────────
-const YT_CATEGORY_IDS = {
-  "영화 및 애니메이션": "1",
-  "음악": "10",
-  "교육": "27",
-  "과학기술": "28",
-  "뉴스/정치": "25",
-  "노하우/스타일": "26",
-  "인물/블로그": "22",
-  "코미디": "23",
-  "스포츠": "17",
-  "게임": "20",
-  "반려동물/동물": "15",
-  "여행 및 행사": "19",
-  "자동차 및 탈것": "2",
-  "엔터테인먼트": "24",
+const CAT_KEYWORDS = {
+  "영화 및 애니메이션": "드라마 영화 애니 클립 쇼츠",
+  "음악": "음악 뮤직비디오 커버 쇼츠",
+  "교육": "지식 역사 과학 교육 쇼츠",
+  "과학기술": "과학 기술 AI 실험 쇼츠",
+  "뉴스/정치": "뉴스 시사 정치 이슈 쇼츠",
+  "노하우/스타일": "꿀팁 뷰티 인테리어 요리 쇼츠",
+  "인물/블로그": "브이로그 일상 스토리 반응 쇼츠",
+  "코미디": "웃긴 개그 코미디 밈 쇼츠",
+  "스포츠": "스포츠 축구 야구 운동 쇼츠",
+  "게임": "게임 클립 플레이 쇼츠",
+  "반려동물/동물": "강아지 고양이 동물 쇼츠",
+  "여행 및 행사": "여행 맛집 국내 해외 쇼츠",
+  "자동차 및 탈것": "자동차 차량 드라이브 쇼츠",
+  "엔터테인먼트": "엔터 예능 연예 인기 쇼츠",
 };
 
 const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
@@ -755,10 +755,9 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
     if (!apiKey||!apiKey.startsWith("AIza")) { setError("API 키를 먼저 설정에서 등록해주세요!"); return; }
     setLoading(true); setError(""); setPreview([]);
     try {
-      const catId = YT_CATEGORY_IDS[selectedCat] || "27";
-      // 인기 쇼츠 검색 (videoCategoryId + 조회수순)
+      const keyword = CAT_KEYWORDS[selectedCat] || selectedCat + " 쇼츠";
       const searchRes = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=${catId}&order=viewCount&maxResults=${maxResults}&regionCode=KR&relevanceLanguage=ko&key=${apiKey}`
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${encodeURIComponent(keyword)}&order=viewCount&maxResults=${maxResults}&regionCode=KR&relevanceLanguage=ko&key=${apiKey}`
       );
       const searchData = await searchRes.json();
       if (searchData.error) { setError(`API 오류: ${searchData.error.message}`); setLoading(false); return; }
