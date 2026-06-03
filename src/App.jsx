@@ -744,41 +744,35 @@ const CAT_KEYWORDS = {
 };
 
 const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
-  const [selectedCat, setSelectedCat] = useState("교육");
-  const [maxResults, setMaxResults]   = useState(20);
-  const [loading, setLoading]         = useState(false);
-  const [preview, setPreview]         = useState([]);
-  const [error, setError]             = useState("");
-  const [step, setStep]               = useState("input");
+  const [maxResults, setMaxResults] = useState(20);
+  const [loading, setLoading]       = useState(false);
+  const [preview, setPreview]       = useState([]);
+  const [error, setError]           = useState("");
+  const [step, setStep]             = useState("input");
 
-  const fetchByCategory = async () => {
+  const fetchTrending = async () => {
     if (!apiKey||!apiKey.startsWith("AIza")) { setError("API 키를 먼저 설정에서 등록해주세요!"); return; }
     setLoading(true); setError(""); setPreview([]);
     try {
-      const keyword = CAT_KEYWORDS[selectedCat] || selectedCat + " 쇼츠";
-      const searchRes = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&q=${encodeURIComponent(keyword)}&order=viewCount&maxResults=${maxResults}&regionCode=KR&relevanceLanguage=ko&key=${apiKey}`
+      // 한국 인기 급상승 영상 (videoCategoryId 없이 chart=mostPopular)
+      const res = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&regionCode=KR&maxResults=${maxResults}&key=${apiKey}`
       );
-      const searchData = await searchRes.json();
-      if (searchData.error) { setError(`API 오류: ${searchData.error.message}`); setLoading(false); return; }
+      const data = await res.json();
+      if (data.error) { setError(`API 오류: ${data.error.message}`); setLoading(false); return; }
+      if (!data.items?.length) { setError("영상을 찾을 수 없어요."); setLoading(false); return; }
 
-      const videoIds = searchData.items?.map(i=>i.id.videoId).filter(Boolean).join(",");
-      if (!videoIds) { setError("영상을 찾을 수 없어요."); setLoading(false); return; }
+      const totalViews = data.items.reduce((s,v)=>s+parseInt(v.statistics?.viewCount||0),0)||1;
+      const avgViews   = totalViews/data.items.length;
 
-      const vidRes = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoIds}&key=${apiKey}`);
-      const vidData = await vidRes.json();
-
-      const totalViews = vidData.items?.reduce((s,v)=>s+parseInt(v.statistics?.viewCount||0),0)||1;
-      const avgViews   = totalViews/(vidData.items?.length||1);
-
-      const cards = vidData.items?.map(v=>{
+      const cards = data.items.map(v=>{
         const views    = parseInt(v.statistics?.viewCount||0);
         const multi    = (views/avgViews).toFixed(1);
         const viewsStr = views>=10000000?`${(views/10000000).toFixed(1)}천만`:views>=1000000?`${(views/1000000).toFixed(0)}백만`:views>=10000?`${Math.round(views/10000)}만`:`${views}`;
         const daysDiff = Math.floor((Date.now()-new Date(v.snippet.publishedAt))/86400000);
         const daysAgo  = daysDiff===0?"오늘":daysDiff<=3?`${daysDiff}일 전`:daysDiff<=14?"1주일 전":daysDiff<=45?"1개월 전":daysDiff<=75?"2개월 전":daysDiff<=105?"3개월 전":daysDiff<=210?"6개월 전":daysDiff<=395?"1년 전":"2년 전";
-        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multi}`, mainCat:selectedCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
-      })||[];
+        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multi}`, mainCat:"전체", subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
+      });
       setPreview(cards); setStep("preview");
     } catch(e) { setError("수집 중 오류가 발생했어요."); }
     setLoading(false);
@@ -792,29 +786,16 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col" onClick={e=>e.stopPropagation()}>
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-black text-gray-900">🔥 카테고리 자동 수집</h2>
-            <p className="text-xs text-gray-400 mt-0.5">카테고리 선택만 하면 인기 쇼츠를 자동으로 가져와요</p>
+            <h2 className="text-base font-black text-gray-900">🔥 한국 인기 급상승 수집</h2>
+            <p className="text-xs text-gray-400 mt-0.5">지금 한국에서 가장 인기 있는 영상을 가져와요</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">✕</button>
         </div>
 
         {step==="input"&&(
           <div className="p-5 space-y-4">
-            <div>
-              <label className="text-xs font-black text-gray-600 block mb-2">카테고리 선택</label>
-              <div className="flex flex-wrap gap-2">
-                {Object.keys(CAT_KEYWORDS).map(cat=>{
-                  const color = TAXONOMY[cat]?.color||"#888";
-                  const isActive = selectedCat===cat;
-                  return (
-                    <button key={cat} onClick={()=>setSelectedCat(cat)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
-                      style={isActive?{backgroundColor:color,color:"white",boxShadow:`0 4px 12px ${color}50`}:{backgroundColor:"#f3f4f6",color:"#6b7280"}}>
-                      {TAXONOMY[cat]?.emoji} {cat}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="bg-gray-50 rounded-2xl p-4">
+              <p className="text-sm text-gray-600 leading-relaxed">지금 한국에서 급상승 중인 영상들을 가져와요. 수집 후 카테고리는 직접 분류할 수 있어요.</p>
             </div>
             <div>
               <label className="text-xs font-black text-gray-600 block mb-2">가져올 영상 수</label>
@@ -829,12 +810,12 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
             </div>
             {error&&<p className="text-sm text-red-500 bg-red-50 rounded-xl px-4 py-3">⚠️ {error}</p>}
             {!apiKey&&<p className="text-xs text-yellow-700 bg-yellow-50 rounded-xl px-4 py-3">⚠️ API 키를 먼저 ⚙️ 설정에서 등록해주세요</p>}
-            <button onClick={fetchByCategory} disabled={loading||!apiKey}
+            <button onClick={fetchTrending} disabled={loading||!apiKey}
               className="w-full py-3 rounded-2xl text-sm font-black text-gray-900 disabled:opacity-40"
               style={{background:"#00ff97"}}>
-              {loading?"수집 중...":"🚀 인기 쇼츠 가져오기"}
+              {loading?"수집 중...":"🚀 한국 인기 급상승 가져오기"}
             </button>
-            {loading&&<div className="flex items-center justify-center gap-2 text-gray-400"><div className="w-4 h-4 rounded-full border-2 border-gray-200 border-t-gray-500 animate-spin"/><p className="text-xs">YouTube에서 인기 영상 가져오는 중...</p></div>}
+            {loading&&<div className="flex items-center justify-center gap-2 text-gray-400"><div className="w-4 h-4 rounded-full border-2 border-gray-200 border-t-gray-500 animate-spin"/><p className="text-xs">YouTube 급상승 데이터 가져오는 중...</p></div>}
           </div>
         )}
 
