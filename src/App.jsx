@@ -5,24 +5,25 @@ import { useState, useRef, useEffect, useMemo } from "react";
 // ─────────────────────────────────────────────
 const PASSWORD = "zeroclip2026";
 
-const TAXONOMY = {
-  "전체":               { emoji:"🎯", subs:[], color:"#374151" },
-  "엔터테인먼트":       { emoji:"🎭", subs:["전체","드라마클립","예능클립","리얼리티","토크쇼"], color:"#E74C3C" },
-  "영화 및 애니메이션": { emoji:"🎬", subs:["전체","국내드라마","해외드라마","영화리뷰","명장면","일본애니","미국애니"], color:"#9B59B6" },
-  "음악":               { emoji:"🎵", subs:["전체","뮤직비디오","커버/연주","무대클립","아이돌","해외팝"], color:"#E91E63" },
-  "교육":               { emoji:"📚", subs:["전체","역사","과학/기술","경제/비즈니스","심리/철학","언어"], color:"#2980B9" },
-  "과학기술":           { emoji:"🔬", subs:["전체","AI/IT","우주/천문","생명과학","공학","신기한실험"], color:"#00BCD4" },
-  "뉴스/정치":          { emoji:"📰", subs:["전체","국내정치","해외이슈","사회비판","경제뉴스"], color:"#27AE60" },
-  "노하우/스타일":      { emoji:"✂️", subs:["전체","뷰티/메이크업","패션","인테리어DIY","요리레시피","생활꿀팁"], color:"#FF6B9D" },
-  "인물/블로그":        { emoji:"🙋", subs:["전체","브이로그","일상","반응영상","국뽕/해외반응","스토리텔링"], color:"#FF9800" },
-  "코미디":             { emoji:"😂", subs:["전체","상황극","몰래카메라","짤/밈","개그클립"], color:"#FFC107" },
-  "스포츠":             { emoji:"⚽", subs:["전체","축구","야구","농구","골프","격투기"], color:"#4CAF50" },
-  "게임":               { emoji:"🎮", subs:["전체","FPS","RPG","모바일","인디","게임클립"], color:"#3F51B5" },
-  "반려동물/동물":      { emoji:"🐾", subs:["전체","강아지","고양이","야생동물","특이한동물"], color:"#795548" },
-  "여행 및 행사":       { emoji:"✈️", subs:["전체","국내여행","해외여행","축제/행사","먹방여행"], color:"#009688" },
-  "자동차 및 탈것":     { emoji:"🚗", subs:["전체","자동차리뷰","오토바이","대중교통"], color:"#607D8B" },
-  "비영리/사회운동":    { emoji:"🌱", subs:["전체","환경","동물권","사회이슈","자선"], color:"#8BC34A" },
+const DEFAULT_TAXONOMY = {
+  "전체":         { emoji:"🎯", color:"#374151" },
+  "드라마/영화":  { emoji:"🎬", color:"#E74C3C" },
+  "애니메이션":   { emoji:"🌀", color:"#9B59B6" },
+  "지식/교육":    { emoji:"📚", color:"#2980B9" },
+  "국뽕/해외반응":{ emoji:"🇰🇷", color:"#27AE60" },
+  "감동/스토리":  { emoji:"❤️", color:"#FF6B9D" },
+  "음악":         { emoji:"🎵", color:"#E91E63" },
+  "코미디/밈":    { emoji:"😂", color:"#FFC107" },
+  "스포츠":       { emoji:"⚽", color:"#4CAF50" },
+  "게임":         { emoji:"🎮", color:"#3F51B5" },
+  "쇼핑/리뷰":   { emoji:"🛍️", color:"#FF9800" },
+  "뉴스/정치":    { emoji:"📰", color:"#607D8B" },
 };
+
+let TAXONOMY = (() => {
+  try { return JSON.parse(localStorage.getItem("zc_taxonomy")||"null") || DEFAULT_TAXONOMY; } catch { return {...DEFAULT_TAXONOMY}; }
+})();
+
 
 const PERIOD_OPTIONS = [
   { label:"전체 기간", value:"all" },
@@ -232,7 +233,7 @@ const AddCardModal = ({ onClose, onAdd, allTags }) => {
   const mainCats = Object.keys(TAXONOMY).filter(k=>k!=="전체");
   const [form, setForm] = useState({ title:"", channel:"", views:"", multiplier:"", mainCat:mainCats[0], subCat:"", daysAgo:"오늘", url:"", thumbnail:"", memo:"", script:"", tags:[], myViews:"" });
   const [fetching, setFetching] = useState(false);
-  const subs = TAXONOMY[form.mainCat]?.subs.filter(s=>s!=="전체")||[];
+  const subs = [];
   const set = (k,v)=>setForm(p=>({...p,[k]:v}));
 
   const fetchOEmbed = async () => {
@@ -499,12 +500,15 @@ const MyViewsModal = ({ item, onClose, onSave }) => {
 // ─────────────────────────────────────────────
 // 설정 모달
 // ─────────────────────────────────────────────
-const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTags, onAddTag, onRemoveTag }) => {
+const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory }) => {
   const [key, setKey]         = useState(apiKey);
   const [gKey, setGKey]       = useState(geminiKey);
   const [showYt, setShowYt]   = useState(false);
   const [showGm, setShowGm]   = useState(false);
   const [newTag, setNewTag]   = useState("");
+  const [newCatName, setNewCatName]   = useState("");
+  const [newCatEmoji, setNewCatEmoji] = useState("🎬");
+  const [newCatColor, setNewCatColor] = useState("#E74C3C");
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
@@ -528,7 +532,6 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
               <button onClick={()=>setShowYt(s=>!s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{showYt?"숨김":"표시"}</button>
             </div>
             {key&&key.startsWith("AIza")&&<p className="text-xs text-green-600 font-bold mt-1.5">✓ 유효한 키 형식이에요</p>}
-            <p className="text-xs text-gray-400 mt-1.5">채널 수집, 카테고리 자동 수집에 사용돼요</p>
           </div>
 
           {/* Gemini API 키 */}
@@ -545,7 +548,39 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
               <button onClick={()=>setShowGm(s=>!s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{showGm?"숨김":"표시"}</button>
             </div>
             {gKey&&gKey.startsWith("AIza")&&<p className="text-xs text-green-600 font-bold mt-1.5">✓ 유효한 키 형식이에요</p>}
-            <p className="text-xs text-gray-400 mt-1.5">YouTube 영상 URL로 내용 자동 분석, 내 채널 비교 분석에 사용돼요</p>
+          </div>
+
+          {/* 카테고리 관리 */}
+          <div className="bg-gray-50 rounded-2xl p-4 mb-3">
+            <label className="text-xs font-black text-gray-600 block mb-3">📂 카테고리 관리</label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {Object.entries(taxonomy).map(([name,{emoji,color}])=>(
+                <div key={name} className="flex items-center gap-1 rounded-full px-2.5 py-1" style={{backgroundColor:color+"20",border:`1px solid ${color}40`}}>
+                  <span className="text-xs">{emoji}</span>
+                  <span className="text-xs font-bold" style={{color}}>{name}</span>
+                  {name!=="전체"&&(
+                    <button onClick={()=>onRemoveCategory(name)} className="text-gray-400 hover:text-red-500 text-xs ml-1">✕</button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 mb-2">
+              <input value={newCatEmoji} onChange={e=>setNewCatEmoji(e.target.value)}
+                className="w-12 text-center text-sm border border-gray-200 rounded-xl py-2 outline-none" placeholder="🎬"/>
+              <input value={newCatName} onChange={e=>setNewCatName(e.target.value)}
+                placeholder="카테고리 이름" className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none"/>
+            </div>
+            <div className="flex gap-2 items-center">
+              <div className="flex flex-wrap gap-1 flex-1">
+                {CAT_COLORS.slice(0,8).map(c=>(
+                  <button key={c} onClick={()=>setNewCatColor(c)}
+                    className="w-6 h-6 rounded-full border-2 transition-transform hover:scale-110"
+                    style={{backgroundColor:c, borderColor:newCatColor===c?"#000":"transparent"}}/>
+                ))}
+              </div>
+              <button onClick={()=>{if(newCatName.trim()){onAddCategory(newCatName.trim(),newCatEmoji,newCatColor);setNewCatName("");}}}
+                className="px-3 py-2 rounded-xl text-xs font-black text-gray-900 flex-shrink-0" style={{background:"#00ff97"}}>추가</button>
+            </div>
           </div>
 
           {/* 태그 관리 */}
@@ -1633,10 +1668,15 @@ const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, o
 // ─────────────────────────────────────────────
 export default function ZeroClip() {
   const [loggedIn, setLoggedIn]     = useState(()=>sessionStorage.getItem("zc_auth")==="1");
+  const [taxVersion, setTaxVersion] = useState(0); // taxonomy 변경 감지용
+  const saveTAXONOMY = (t) => { TAXONOMY = t; localStorage.setItem("zc_taxonomy", JSON.stringify(t)); setTaxVersion(v=>v+1); };
+  const addCategory    = (name, emoji, color) => { if (!name.trim()||TAXONOMY[name]) return; saveTAXONOMY({...TAXONOMY, [name]:{emoji, color}}); };
+  const removeCategory = (name) => { if (name==="전체") return; const t={...TAXONOMY}; delete t[name]; saveTAXONOMY(t); };
+
   const [cards, setCards]           = useState(()=>{
     try { return JSON.parse(localStorage.getItem("zc_cards")||"[]"); } catch { return []; }
   });
-  const [tab, setTab]               = useState("gallery"); // gallery | dashboard
+  const [tab, setTab]               = useState("gallery");
   const [mainCat, setMainCat]       = useState("전체");
   const [subCat, setSubCat]         = useState("전체");
   const [search, setSearch]         = useState("");
@@ -1668,7 +1708,7 @@ export default function ZeroClip() {
   const addTag    = tag => { if (!allTags.includes(tag)) setAllTags(p=>[...p,tag]); };
   const removeTag = tag => { setAllTags(p=>p.filter(t=>t!==tag)); setCards(p=>p.map(c=>({...c,tags:c.tags?.filter(t=>t!==tag)||[]}))); };
 
-  const subs  = TAXONOMY[mainCat]?.subs||[];
+  const subs = [];
   const color = TAXONOMY[mainCat]?.color||"#374151";
 
   const handleMainCat  = cat => { setMainCat(cat); setSubCat("전체"); };
@@ -1854,7 +1894,7 @@ export default function ZeroClip() {
       {myViewsTarget    &&<MyViewsModal      item={myViewsTarget} onClose={()=>setMyViewsTarget(null)} onSave={saveMyViews}/>}
       {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)}/>}
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
-      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag}/>}
+      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory}/>}
       {showCategoryFetch&&<CategoryAutoFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowCategoryFetch(false)}/>}
       {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard}     onClose={()=>setShowChannelFetch(false)}/>}
     </div>
