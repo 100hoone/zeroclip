@@ -1693,13 +1693,13 @@ export default function ZeroClip() {
   const handleMainCat  = cat => { setMainCat(cat); setSubCat("전체"); };
   const toggleSelect   = id  => setSelectedIds(p=>p.includes(id)?p.filter(i=>i!==id):[...p,id]);
   const updateCards    = (newCards) => { setCards(newCards); localStorage.setItem("zc_cards", JSON.stringify(newCards)); };
-  const toggleBookmark = id  => updateCards(cards.map(c=>c.id===id?{...c,bookmarked:!c.bookmarked}:c));
-  const saveMemo       = (id,memo)   => updateCards(cards.map(c=>c.id===id?{...c,memo}:c));
-  const saveScript     = (id,script) => updateCards(cards.map(c=>c.id===id?{...c,script}:c));
-  const saveTags       = (id,tags)   => updateCards(cards.map(c=>c.id===id?{...c,tags}:c));
-  const saveMyViews    = (id,myViews)=> updateCards(cards.map(c=>c.id===id?{...c,myViews}:c));
-  const addCard        = card => updateCards([card,...cards]);
-  const deleteCard     = id   => updateCards(cards.filter(c=>c.id!==id));
+  const toggleBookmark = id  => setCards(p=>{ const n=p.map(c=>c.id===id?{...c,bookmarked:!c.bookmarked}:c); localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
+  const saveMemo       = (id,memo)   => setCards(p=>{ const n=p.map(c=>c.id===id?{...c,memo}:c);   localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
+  const saveScript     = (id,script) => setCards(p=>{ const n=p.map(c=>c.id===id?{...c,script}:c); localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
+  const saveTags       = (id,tags)   => setCards(p=>{ const n=p.map(c=>c.id===id?{...c,tags}:c);   localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
+  const saveMyViews    = (id,myViews)=> setCards(p=>{ const n=p.map(c=>c.id===id?{...c,myViews}:c);localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
+  const addCard        = card => setCards(p=>{ const n=[card,...p]; localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
+  const deleteCard     = id   => setCards(p=>{ const n=p.filter(c=>c.id!==id); localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
 
   const filtered = cards
     .filter(item=>{
