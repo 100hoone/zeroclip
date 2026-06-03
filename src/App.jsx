@@ -659,7 +659,7 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose }) => {
               <label className="text-xs font-black text-gray-600 block mb-2">카테고리 설정 (수집된 카드에 일괄 적용)</label>
               <select value={selectedCat} onChange={e=>setSelectedCat(e.target.value)}
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white">
-                {mainCats.map(c=><option key={c}>{TAXONOMY[c]?.emoji} {c}</option>)}
+                {mainCats.map(c=><option key={c} value={c}>{TAXONOMY[c]?.emoji} {c}</option>)}
               </select>
             </div>
             <div>
@@ -1653,7 +1653,9 @@ const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, o
 // ─────────────────────────────────────────────
 export default function ZeroClip() {
   const [loggedIn, setLoggedIn]     = useState(()=>sessionStorage.getItem("zc_auth")==="1");
-  const [cards, setCards]           = useState(INIT_DATA);
+  const [cards, setCards]           = useState(()=>{
+    try { return JSON.parse(localStorage.getItem("zc_cards")||"[]"); } catch { return []; }
+  });
   const [tab, setTab]               = useState("gallery"); // gallery | dashboard
   const [mainCat, setMainCat]       = useState("전체");
   const [subCat, setSubCat]         = useState("전체");
@@ -1691,13 +1693,14 @@ export default function ZeroClip() {
 
   const handleMainCat  = cat => { setMainCat(cat); setSubCat("전체"); };
   const toggleSelect   = id  => setSelectedIds(p=>p.includes(id)?p.filter(i=>i!==id):[...p,id]);
-  const toggleBookmark = id  => setCards(p=>p.map(c=>c.id===id?{...c,bookmarked:!c.bookmarked}:c));
-  const saveMemo       = (id,memo)   => setCards(p=>p.map(c=>c.id===id?{...c,memo}:c));
-  const saveScript     = (id,script) => setCards(p=>p.map(c=>c.id===id?{...c,script}:c));
-  const saveTags       = (id,tags)   => setCards(p=>p.map(c=>c.id===id?{...c,tags}:c));
-  const saveMyViews    = (id,myViews)=> setCards(p=>p.map(c=>c.id===id?{...c,myViews}:c));
-  const addCard        = card => setCards(p=>[card,...p]);
-  const deleteCard     = id   => setCards(p=>p.filter(c=>c.id!==id));
+  const updateCards    = (newCards) => { setCards(newCards); localStorage.setItem("zc_cards", JSON.stringify(newCards)); };
+  const toggleBookmark = id  => updateCards(cards.map(c=>c.id===id?{...c,bookmarked:!c.bookmarked}:c));
+  const saveMemo       = (id,memo)   => updateCards(cards.map(c=>c.id===id?{...c,memo}:c));
+  const saveScript     = (id,script) => updateCards(cards.map(c=>c.id===id?{...c,script}:c));
+  const saveTags       = (id,tags)   => updateCards(cards.map(c=>c.id===id?{...c,tags}:c));
+  const saveMyViews    = (id,myViews)=> updateCards(cards.map(c=>c.id===id?{...c,myViews}:c));
+  const addCard        = card => updateCards([card,...cards]);
+  const deleteCard     = id   => updateCards(cards.filter(c=>c.id!==id));
 
   const filtered = cards
     .filter(item=>{
