@@ -24,6 +24,8 @@ let TAXONOMY = (() => {
   try { return JSON.parse(localStorage.getItem("zc_taxonomy")||"null") || DEFAULT_TAXONOMY; } catch { return {...DEFAULT_TAXONOMY}; }
 })();
 
+const CAT_COLORS = ["#E74C3C","#9B59B6","#2980B9","#27AE60","#FF6B9D","#E91E63","#FFC107","#4CAF50","#3F51B5","#FF9800","#607D8B","#00BCD4","#795548","#8BC34A","#F39C12"];
+
 
 const PERIOD_OPTIONS = [
   { label:"전체 기간", value:"all" },
