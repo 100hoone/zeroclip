@@ -710,7 +710,7 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
       const catId = YT_CATEGORY_IDS[selectedCat] || "27";
       // 인기 쇼츠 검색 (videoCategoryId + 조회수순)
       const searchRes = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=${catId}&order=viewCount&maxResults=${maxResults}&videoDuration=short&relevanceLanguage=ko&key=${apiKey}`
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoCategoryId=${catId}&order=viewCount&maxResults=${maxResults}&regionCode=KR&relevanceLanguage=ko&key=${apiKey}`
       );
       const searchData = await searchRes.json();
       if (searchData.error) { setError(`API 오류: ${searchData.error.message}`); setLoading(false); return; }
