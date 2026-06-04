@@ -1895,23 +1895,32 @@ const Dashboard = ({ cards, allTags }) => {
 // 카테고리 수정 모달
 const CatEditModal = ({ item, onClose, onSave }) => {
   const [mainCat, setMainCat] = useState(item.mainCat||"전체");
-  const [subCat, setSubCat]   = useState(item.subCat||"전체");
+  // subCat을 배열로 관리 (기존 string도 호환)
+  const [subCats, setSubCats] = useState(()=>{
+    if (!item.subCat||item.subCat==="전체") return [];
+    return Array.isArray(item.subCat) ? item.subCat : [item.subCat];
+  });
   const mainCats = Object.keys(TAXONOMY);
-  const subs     = TAXONOMY[mainCat]?.subs||[];
+  const subs     = (TAXONOMY[mainCat]?.subs||[]).filter(s=>s!=="전체");
+
+  const toggleSub = (s) => setSubCats(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xs" onClick={e=>e.stopPropagation()}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm" onClick={e=>e.stopPropagation()}>
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-sm font-black text-gray-900">📂 카테고리 수정</h2>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 text-xs">✕</button>
         </div>
-        <div className="p-5 space-y-3">
+        <div className="p-5 space-y-4">
           <p className="text-xs text-gray-500 line-clamp-1 font-medium">{item.title}</p>
+
+          {/* 대분류 */}
           <div>
-            <label className="text-xs font-black text-gray-600 block mb-2">대분류</label>
+            <label className="text-xs font-black text-gray-600 block mb-2">대분류 <span className="text-gray-400 font-normal">(1개 선택)</span></label>
             <div className="flex flex-wrap gap-1.5">
               {mainCats.map(c=>(
-                <button key={c} onClick={()=>{setMainCat(c);setSubCat("전체");}}
+                <button key={c} onClick={()=>{setMainCat(c);setSubCats([]);}}
                   className="px-2.5 py-1 rounded-xl text-xs font-bold transition-all"
                   style={mainCat===c?{backgroundColor:TAXONOMY[c]?.color,color:"white"}:{backgroundColor:"#f3f4f6",color:"#6b7280"}}>
                   {TAXONOMY[c]?.emoji} {c}
@@ -1919,21 +1928,30 @@ const CatEditModal = ({ item, onClose, onSave }) => {
               ))}
             </div>
           </div>
-          {subs.filter(s=>s!=="전체").length>0&&(
+
+          {/* 소분류 - 다중 선택 */}
+          {subs.length>0&&(
             <div>
-              <label className="text-xs font-black text-gray-600 block mb-2">소분류</label>
+              <label className="text-xs font-black text-gray-600 block mb-2">소분류 <span className="text-gray-400 font-normal">(여러 개 선택 가능)</span></label>
               <div className="flex flex-wrap gap-1.5">
-                {subs.map(s=>(
-                  <button key={s} onClick={()=>setSubCat(s)}
-                    className="px-2.5 py-1 rounded-xl text-xs font-bold transition-all"
-                    style={subCat===s?{backgroundColor:TAXONOMY[mainCat]?.color,color:"white"}:{backgroundColor:"#f3f4f6",color:"#6b7280"}}>
-                    {s}
-                  </button>
-                ))}
+                {subs.map(s=>{
+                  const active = subCats.includes(s);
+                  return (
+                    <button key={s} onClick={()=>toggleSub(s)}
+                      className="px-2.5 py-1 rounded-xl text-xs font-bold transition-all border"
+                      style={active?{backgroundColor:TAXONOMY[mainCat]?.color,color:"white",borderColor:"transparent"}:{backgroundColor:"#f3f4f6",color:"#6b7280",borderColor:"#e5e7eb"}}>
+                      {active&&"✓ "}{s}
+                    </button>
+                  );
+                })}
               </div>
+              {subCats.length>0&&(
+                <p className="text-xs text-gray-400 mt-1.5">선택됨: {subCats.join(", ")}</p>
+              )}
             </div>
           )}
-          <button onClick={()=>{onSave(item.id,mainCat,subCat);onClose();}}
+
+          <button onClick={()=>{onSave(item.id, mainCat, subCats);onClose();}}
             className="w-full py-2.5 rounded-2xl text-sm font-black text-gray-900"
             style={{background:"#00ff97"}}>저장</button>
         </div>
@@ -1976,14 +1994,24 @@ const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, o
       <div className="p-3">
         <h3 className="text-sm font-bold text-gray-900 leading-snug mb-1 line-clamp-2" style={{minHeight:"2.5rem"}}>{item.title}</h3>
         <p className="text-xs text-gray-400 mb-2">@{item.channel}</p>
-        <div className="flex items-center justify-between mb-2">
-          {/* 카테고리 클릭하면 수정 가능 */}
+        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+          {/* 대분류 */}
           <button onClick={e=>{e.stopPropagation();onCatEdit(item);}}
-            className="text-xs font-bold px-2 py-0.5 rounded-full hover:opacity-70 transition-opacity"
+            className="text-xs font-bold px-2 py-0.5 rounded-full hover:opacity-70 transition-opacity flex-shrink-0"
             style={{backgroundColor:color+"20",color}}>
-            {TAXONOMY[item.mainCat]?.emoji} {item.subCat&&item.subCat!=="전체"?item.subCat:item.mainCat}
+            {TAXONOMY[item.mainCat]?.emoji} {item.mainCat}
           </button>
-          <div className="flex items-center gap-1">
+          {/* 소분류 태그들 */}
+          {(()=>{
+            const subs = Array.isArray(item.subCat) ? item.subCat : (item.subCat&&item.subCat!=="전체"?[item.subCat]:[]);
+            return subs.map(s=>(
+              <span key={s} className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0"
+                style={{backgroundColor:color+"10",color,border:`1px solid ${color}30`}}>
+                {s}
+              </span>
+            ));
+          })()}
+          <div className="ml-auto flex items-center gap-1">
             <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
             <span className="text-xs font-bold text-gray-700">{item.views||"—"}</span>
           </div>
