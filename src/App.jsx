@@ -231,104 +231,6 @@ const TagFilter = ({ allTags, activeTag, setActiveTag }) => {
 // ─────────────────────────────────────────────
 // 카드 추가 모달
 // ─────────────────────────────────────────────
-const AddCardModal = ({ onClose, onAdd, allTags }) => {
-  const mainCats = Object.keys(TAXONOMY).filter(k=>k!=="전체");
-  const [form, setForm] = useState({ title:"", channel:"", views:"", multiplier:"", mainCat:mainCats[0], subCat:"", daysAgo:"오늘", url:"", thumbnail:"", memo:"", script:"", tags:[], myViews:"" });
-  const [fetching, setFetching] = useState(false);
-  const subs = [];
-  const set = (k,v)=>setForm(p=>({...p,[k]:v}));
-
-  const fetchOEmbed = async () => {
-    if (!form.url) return;
-    setFetching(true);
-    try {
-      const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(form.url)}&format=json`);
-      const data = await res.json();
-      setForm(p=>({...p, title:data.title||p.title, channel:data.author_name||p.channel, thumbnail:data.thumbnail_url||p.thumbnail}));
-    } catch(e) {}
-    setFetching(false);
-  };
-
-  const toggleTag = tag => setForm(p=>({...p, tags:p.tags.includes(tag)?p.tags.filter(t=>t!==tag):[...p.tags,tag]}));
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-black text-gray-900">새 소재 추가</h2>
-            <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">✕</button>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-black text-gray-500 block mb-1">YouTube URL</label>
-              <div className="flex gap-2">
-                <input type="url" value={form.url} onChange={e=>set("url",e.target.value)} placeholder="https://youtube.com/shorts/..."
-                  className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-gray-400"/>
-                <button onClick={fetchOEmbed} disabled={fetching||!form.url} className="px-3 py-2 rounded-xl text-xs font-bold text-gray-900 disabled:opacity-40" style={{background:"#00ff97"}}>
-                  {fetching?"⏳":"자동입력"}
-                </button>
-              </div>
-            </div>
-            {[["영상 제목 *","title"],["채널명","channel"],["썸네일 URL","thumbnail"],["조회수 (예: 500만)","views"],["배수 (예: ×15.3)","multiplier"]].map(([label,key])=>(
-              <div key={key}>
-                <label className="text-xs font-black text-gray-500 block mb-1">{label}</label>
-                <input value={form[key]} onChange={e=>set(key,e.target.value)} placeholder={label}
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-gray-400"/>
-              </div>
-            ))}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-black text-gray-500 block mb-1">대분류</label>
-                <select value={form.mainCat} onChange={e=>set("mainCat",e.target.value)} className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white">
-                  {mainCats.map(c=><option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-black text-gray-500 block mb-1">소분류</label>
-                <select value={form.subCat} onChange={e=>set("subCat",e.target.value)} className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white">
-                  <option value="">선택</option>
-                  {subs.map(s=><option key={s}>{s}</option>)}
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-black text-gray-500 block mb-1">업로드 기간</label>
-              <select value={form.daysAgo} onChange={e=>set("daysAgo",e.target.value)} className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white">
-                {Object.keys(daysMap).map(d=><option key={d}>{d}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-black text-gray-500 block mb-1">태그</label>
-              <div className="flex flex-wrap gap-1.5">
-                {allTags.map(tag=>(
-                  <button key={tag} onClick={()=>toggleTag(tag)}
-                    className={`text-xs px-2.5 py-1 rounded-full font-bold transition-all ${form.tags.includes(tag)?"bg-gray-900 text-white":"bg-gray-100 text-gray-600"}`}>
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-xs font-black text-gray-500 block mb-1">메모</label>
-              <textarea value={form.memo} onChange={e=>set("memo",e.target.value)} rows={2} placeholder="소재 메모" className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none resize-none"/>
-            </div>
-            <div>
-              <label className="text-xs font-black text-gray-500 block mb-1">대본</label>
-              <textarea value={form.script} onChange={e=>set("script",e.target.value)} rows={4} placeholder="대본 붙여넣기" className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none resize-none font-mono"/>
-            </div>
-          </div>
-          <div className="flex gap-2 mt-5">
-            <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-gray-500">취소</button>
-            <button onClick={()=>{if(!form.title.trim())return;onAdd({...form,id:Date.now(),bookmarked:false});onClose();}}
-              className="flex-1 py-3 rounded-2xl text-sm font-black text-gray-900" style={{background:"#00ff97"}}>추가하기</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // ─────────────────────────────────────────────
 // 대본 모달
 // ─────────────────────────────────────────────
@@ -789,7 +691,7 @@ const CAT_KEYWORDS = {
 
 // 영상 추가 모달
 // ─────────────────────────────────────────────
-const VideoAddModal = ({ onAdd, onClose }) => {
+const VideoAddModal = ({ onAdd, onClose, apiKey }) => {
   const [url, setUrl]         = useState("");
   const [title, setTitle]     = useState("");
   const [channel, setChannel] = useState("");
@@ -809,12 +711,23 @@ const VideoAddModal = ({ onAdd, onClose }) => {
     if (!url.trim()) return;
     setFetching(true); setError("");
     try {
+      const vid = extractVideoId(url);
+      // oEmbed로 기본 정보
       const res  = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
       const data = await res.json();
       setTitle(data.title||"");
       setChannel(data.author_name||"");
-      const vid = extractVideoId(url);
       setThumb(vid?`https://img.youtube.com/vi/${vid}/mqdefault.jpg`:"");
+      // API 키 있으면 조회수도 자동으로
+      if (apiKey&&apiKey.startsWith("AIza")&&vid) {
+        const vRes  = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=statistics&id=${vid}&key=${apiKey}`);
+        const vData = await vRes.json();
+        const v = parseInt(vData.items?.[0]?.statistics?.viewCount||0);
+        if (v>0) {
+          const str = v>=10000000?`${(v/10000000).toFixed(1)}천만`:v>=1000000?`${(v/1000000).toFixed(0)}백만`:v>=10000?`${Math.round(v/10000)}만`:`${v}`;
+          setViews(str);
+        }
+      }
     } catch { setError("영상 정보를 가져올 수 없어요. URL을 확인해주세요."); }
     setFetching(false);
   };
@@ -836,12 +749,11 @@ const VideoAddModal = ({ onAdd, onClose }) => {
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h2 className="text-base font-black text-gray-900">🎬 영상 추가</h2>
-            <p className="text-xs text-gray-400 mt-0.5">YouTube 영상 URL로 바로 추가해요</p>
+            <p className="text-xs text-gray-400 mt-0.5">YouTube URL 하나로 바로 추가해요</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">✕</button>
         </div>
         <div className="p-5 space-y-4">
-          {/* URL 입력 */}
           <div>
             <label className="text-xs font-black text-gray-600 block mb-2">YouTube URL</label>
             <div className="flex gap-2">
@@ -851,46 +763,36 @@ const VideoAddModal = ({ onAdd, onClose }) => {
               <button onClick={fetchMeta} disabled={fetching||!url.trim()}
                 className="px-3 py-2.5 rounded-xl text-xs font-black text-gray-900 disabled:opacity-40 flex-shrink-0"
                 style={{background:"#00ff97"}}>
-                {fetching?"...":"자동완성"}
+                {fetching?<div className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-gray-700 animate-spin"/>:"자동완성"}
               </button>
             </div>
             {error&&<p className="text-xs text-red-500 mt-1">{error}</p>}
           </div>
 
-          {/* 썸네일 미리보기 */}
           {thumbnail&&(
             <div className="flex gap-3 items-start bg-gray-50 rounded-2xl p-3">
               <img src={thumbnail} className="w-20 h-14 object-cover rounded-xl flex-shrink-0"/>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-gray-900 line-clamp-2">{title}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{channel}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{channel}</p>
+                {views&&<p className="text-xs font-bold text-blue-500 mt-0.5">👁 {views}</p>}
               </div>
             </div>
           )}
 
-          {/* 제목 (수동 입력 가능) */}
-          <div>
-            <label className="text-xs font-black text-gray-600 block mb-2">제목</label>
-            <input value={title} onChange={e=>setTitle(e.target.value)}
-              placeholder="영상 제목"
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-gray-400"/>
-          </div>
+          {!thumbnail&&title&&(
+            <div className="bg-gray-50 rounded-2xl p-3">
+              <p className="text-xs font-bold text-gray-900">{title}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{channel}</p>
+            </div>
+          )}
 
-          {/* 조회수 + 카테고리 */}
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="text-xs font-black text-gray-600 block mb-2">조회수 (선택)</label>
-              <input value={views} onChange={e=>setViews(e.target.value)}
-                placeholder="예: 50만"
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-gray-400"/>
-            </div>
-            <div className="flex-1">
-              <label className="text-xs font-black text-gray-600 block mb-2">카테고리</label>
-              <select value={selectedCat} onChange={e=>setCat(e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white">
-                {mainCats.map(c=><option key={c} value={c}>{TAXONOMY[c]?.emoji} {c}</option>)}
-              </select>
-            </div>
+          <div>
+            <label className="text-xs font-black text-gray-600 block mb-2">카테고리</label>
+            <select value={selectedCat} onChange={e=>setCat(e.target.value)}
+              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white">
+              {mainCats.map(c=><option key={c} value={c}>{TAXONOMY[c]?.emoji} {c}</option>)}
+            </select>
           </div>
 
           <button onClick={handleAdd} disabled={!url.trim()||!title.trim()}
@@ -1973,7 +1875,6 @@ export default function ZeroClip() {
                 }
               </button>
             )}
-            <button onClick={()=>setShowAdd(true)} className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-900 text-white hover:bg-gray-700 flex-shrink-0">+ 추가</button>
             <button onClick={()=>setShowSettings(true)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 flex-shrink-0 text-sm">⚙️</button>
           </div>
 
@@ -2078,7 +1979,7 @@ export default function ZeroClip() {
       {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)}/>}
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
       {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory}/>}
-      {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)}/>}
+      {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)} apiKey={apiKey}/>}
       {showCategoryFetch&&<CategoryAutoFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowCategoryFetch(false)}/>}
       {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowChannelFetch(false)}
         onRegisterChannel={ch=>{ if(!refChannels.find(r=>r.url===ch.url)) saveRefChannels([...refChannels,ch]); }}/>}
