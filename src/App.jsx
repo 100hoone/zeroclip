@@ -346,7 +346,7 @@ const ScriptModal = ({ item, onClose, onSave, geminiKey }) => {
     setLoading(true); setError("");
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -622,7 +622,7 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
 // ─────────────────────────────────────────────
 // 채널 수집 모달
 // ─────────────────────────────────────────────
-const ChannelFetchModal = ({ apiKey, onAdd, onClose }) => {
+const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel }) => {
   const [channelUrl, setChannelUrl] = useState("");
   const [maxResults, setMaxResults] = useState(20);
   const [selectedCat, setSelectedCat] = useState("전체");
@@ -744,11 +744,18 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose }) => {
                 </div>
               ))}
             </div>
-            <div className="p-4 border-t border-gray-100">
+            <div className="p-4 border-t border-gray-100 space-y-2">
               <button onClick={addSelected} disabled={preview.filter(c=>c._selected).length===0}
                 className="w-full py-3 rounded-2xl text-sm font-black text-gray-900 disabled:opacity-40" style={{background:"#00ff97"}}>
                 ✅ {preview.filter(c=>c._selected).length}개 갤러리에 추가
               </button>
+              {onRegisterChannel&&preview.length>0&&(
+                <button onClick={()=>{addSelected();onRegisterChannel({name:preview[0].channel,category:selectedCat,url:channelUrl});}}
+                  disabled={preview.filter(c=>c._selected).length===0}
+                  className="w-full py-2.5 rounded-2xl text-sm font-bold text-blue-600 border-2 border-blue-200 hover:bg-blue-50 disabled:opacity-40">
+                  🔄 추가 + 레퍼런스 채널 등록 (이후 자동 업데이트)
+                </button>
+              )}
             </div>
           </>
         )}
@@ -1703,6 +1710,53 @@ export default function ZeroClip() {
   const [allTags, setAllTags]       = useState(DEFAULT_TAGS);
   const [apiKey, setApiKey]         = useState(()=>localStorage.getItem("yt_api_key")||"");
   const [geminiKey, setGeminiKey]   = useState(()=>localStorage.getItem("gemini_api_key")||"");
+  const [autoSyncing, setAutoSyncing] = useState(false);
+  const [lastSynced, setLastSynced]   = useState(()=>localStorage.getItem("zc_last_synced")||"");
+
+  // 등록된 레퍼런스 채널 목록 (자동 업데이트용)
+  const [refChannels, setRefChannels] = useState(()=>{
+    try { return JSON.parse(localStorage.getItem("zc_ref_channels")||"[]"); } catch { return []; }
+  });
+  const saveRefChannels = list => { setRefChannels(list); localStorage.setItem("zc_ref_channels", JSON.stringify(list)); };
+
+  // 자동 업데이트: 마지막 동기화 후 6시간 지났으면 자동 실행
+  useEffect(()=>{
+    if (!apiKey||!apiKey.startsWith("AIza")) return;
+    if (refChannels.length===0) return;
+    const lastTs = lastSynced ? new Date(lastSynced).getTime() : 0;
+    const sixHours = 6*60*60*1000;
+    if (Date.now()-lastTs > sixHours) autoSync();
+  }, [apiKey]);
+
+  const autoSync = async () => {
+    if (!apiKey||!apiKey.startsWith("AIza")||refChannels.length===0) return;
+    setAutoSyncing(true);
+    try {
+      for (const ch of refChannels) {
+        const srRes  = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${ch.id}&type=video&order=date&maxResults=10&key=${apiKey}`);
+        const srData = await srRes.json();
+        if (srData.error||!srData.items?.length) continue;
+        const videoIds = srData.items.map(i=>i.id.videoId).filter(Boolean).join(",");
+        const vidRes   = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoIds}&key=${apiKey}`);
+        const vidData  = await vidRes.json();
+        const existing = JSON.parse(localStorage.getItem("zc_cards")||"[]");
+        const existingIds = new Set(existing.map(c=>c.url?.split("v=")?.[1]));
+        const newCards = (vidData.items||[]).filter(v=>!existingIds.has(v.id)).map(v=>{
+          const views    = parseInt(v.statistics?.viewCount||0);
+          const viewsStr = views>=10000000?`${(views/10000000).toFixed(1)}천만`:views>=1000000?`${(views/1000000).toFixed(0)}백만`:views>=10000?`${Math.round(views/10000)}만`:`${views}`;
+          const daysDiff = Math.floor((Date.now()-new Date(v.snippet.publishedAt))/86400000);
+          const daysAgo  = daysDiff===0?"오늘":daysDiff<=3?`${daysDiff}일 전`:daysDiff<=14?"1주일 전":"1개월 전";
+          return { id:Date.now()+Math.random(), title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:"×?", mainCat:ch.category||"전체", subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"" };
+        });
+        if (newCards.length>0) {
+          setCards(p=>{ const n=[...newCards,...p]; localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
+        }
+      }
+      const now = new Date().toISOString();
+      setLastSynced(now); localStorage.setItem("zc_last_synced", now);
+    } catch(e) { console.error("autoSync error",e); }
+    setAutoSyncing(false);
+  };
 
   const login        = () => { sessionStorage.setItem("zc_auth","1"); setLoggedIn(true); };
   const saveApiKey   = key => { setApiKey(key);    localStorage.setItem("yt_api_key", key); };
@@ -1792,6 +1846,15 @@ export default function ZeroClip() {
               style={{background:"#00ff97"}}>
               📡 채널 수집
             </button>
+            {refChannels.length>0&&(
+              <button onClick={autoSync} disabled={autoSyncing}
+                className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl bg-blue-500 text-white hover:bg-blue-600 flex-shrink-0 disabled:opacity-50">
+                {autoSyncing
+                  ? <><div className="w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin"/><span>동기화 중...</span></>
+                  : <><span>🔄</span><span>새 영상 업데이트</span></>
+                }
+              </button>
+            )}
             <button onClick={()=>setShowAdd(true)} className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-900 text-white hover:bg-gray-700 flex-shrink-0">+ 추가</button>
             <button onClick={()=>setShowSettings(true)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 flex-shrink-0 text-sm">⚙️</button>
           </div>
@@ -1898,7 +1961,8 @@ export default function ZeroClip() {
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
       {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory}/>}
       {showCategoryFetch&&<CategoryAutoFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowCategoryFetch(false)}/>}
-      {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard}     onClose={()=>setShowChannelFetch(false)}/>}
+      {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowChannelFetch(false)}
+        onRegisterChannel={ch=>{ if(!refChannels.find(r=>r.url===ch.url)) saveRefChannels([...refChannels,ch]); }}/>}
     </div>
   );
 }
