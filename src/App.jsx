@@ -1257,24 +1257,6 @@ const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatCha
     </div>
   );
 };
-
-  // 카드에서 채널 목록 추출
-  const channels = useMemo(()=>{
-    const map = {};
-    cards.forEach(c=>{
-      if (!c.channel) return;
-      if (!map[c.channel]) map[c.channel] = { name:c.channel, count:0, cats:{}, thumbnail:"", mainCat:"전체", url:"" };
-      map[c.channel].count++;
-      map[c.channel].cats[c.mainCat] = (map[c.channel].cats[c.mainCat]||0)+1;
-      if (!map[c.channel].thumbnail && c.thumbnail) map[c.channel].thumbnail = c.thumbnail;
-      if (!map[c.channel].url && c.url) map[c.channel].url = c.url;
-      // 가장 많은 카테고리를 대표 카테고리로
-      const topCat = Object.entries(map[c.channel].cats).sort((a,b)=>b[1]-a[1])[0]?.[0]||"전체";
-      map[c.channel].mainCat = topCat;
-    });
-    return Object.values(map).sort((a,b)=>b.count-a.count);
-  },[cards]);
-
 const MyChannelTab = ({ refCards, apiKey, geminiKey }) => {
   const [myChannels, setMyChannels] = useState(()=>{
     try { return JSON.parse(localStorage.getItem("my_channels")||"[]"); } catch { return []; }
@@ -2393,3 +2375,4 @@ export default function ZeroClip() {
     </div>
   );
 }
+// cache bust Thu Jun  4 02:34:35 UTC 2026
