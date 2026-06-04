@@ -1953,9 +1953,6 @@ export default function ZeroClip() {
                 style={bookmarkOnly?{background:"#00ff97"}:{}}>
                 ★ {bookmarkCount}
               </button>
-              <TagFilter allTags={allTags} activeTag={activeTag} setActiveTag={setActiveTag}/>
-              <PeriodFilter period={period} setPeriod={setPeriod} customFrom={customFrom} setCustomFrom={setCustomFrom} customTo={customTo} setCustomTo={setCustomTo}/>
-              <SortFilter sortBy={sortBy} setSortBy={setSortBy} sortDir={sortDir} setSortDir={setSortDir}/>
             </>}
 
             <button onClick={()=>setShowChannelFetch(true)}
@@ -1993,10 +1990,8 @@ export default function ZeroClip() {
           {tab==="gallery"&&(
             <>
               <div className="flex gap-2 py-2 border-t border-gray-100 flex-wrap">
-                {/* 카테고리 드롭다운 */}
                 <CategoryDropdown mainCat={mainCat} onSelect={handleMainCat} cards={cards}/>
-                {/* 소분류 드롭다운 (소분류 있을 때만) */}
-                {TAXONOMY[mainCat]?.subs?.length>0&&(
+                {mainCat!=="전체"&&(TAXONOMY[mainCat]?.subs||[]).filter(s=>s!=="전체").length>0&&(
                   <SubCatDropdown mainCat={mainCat} subCat={subCat} onSelect={setSubCat} cards={cards} color={TAXONOMY[mainCat]?.color}/>
                 )}
                 <TagFilter allTags={allTags} activeTag={activeTag} setActiveTag={setActiveTag}/>
