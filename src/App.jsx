@@ -6,18 +6,18 @@ import { useState, useRef, useEffect, useMemo } from "react";
 const PASSWORD = "zeroclip2026";
 
 const DEFAULT_TAXONOMY = {
-  "전체":         { emoji:"🎯", color:"#374151" },
-  "드라마/영화":  { emoji:"🎬", color:"#E74C3C" },
-  "애니메이션":   { emoji:"🌀", color:"#9B59B6" },
-  "지식/교육":    { emoji:"📚", color:"#2980B9" },
-  "국뽕/해외반응":{ emoji:"🇰🇷", color:"#27AE60" },
-  "감동/스토리":  { emoji:"❤️", color:"#FF6B9D" },
-  "음악":         { emoji:"🎵", color:"#E91E63" },
-  "코미디/밈":    { emoji:"😂", color:"#FFC107" },
-  "스포츠":       { emoji:"⚽", color:"#4CAF50" },
-  "게임":         { emoji:"🎮", color:"#3F51B5" },
-  "쇼핑/리뷰":   { emoji:"🛍️", color:"#FF9800" },
-  "뉴스/정치":    { emoji:"📰", color:"#607D8B" },
+  "전체":          { emoji:"🎯", color:"#374151", subs:[] },
+  "드라마/영화":   { emoji:"🎬", color:"#E74C3C", subs:["전체","국내드라마","해외드라마","영화리뷰","명장면"] },
+  "애니메이션":    { emoji:"🌀", color:"#9B59B6", subs:["전체","일본애니","미국애니","웹툰원작"] },
+  "지식/교육":     { emoji:"📚", color:"#2980B9", subs:["전체","역사","과학","심리","경제","상식"] },
+  "국뽕/해외반응": { emoji:"🇰🇷", color:"#27AE60", subs:["전체","해외반응","국뽕","한국문화"] },
+  "감동/스토리":   { emoji:"❤️", color:"#FF6B9D", subs:["전체","감동","사연","브이로그"] },
+  "음악":          { emoji:"🎵", color:"#E91E63", subs:["전체","커버","뮤직비디오","아이돌"] },
+  "코미디/밈":     { emoji:"😂", color:"#FFC107", subs:["전체","개그","상황극","밈"] },
+  "스포츠":        { emoji:"⚽", color:"#4CAF50", subs:["전체","축구","야구","농구","격투기"] },
+  "게임":          { emoji:"🎮", color:"#3F51B5", subs:["전체","FPS","RPG","모바일"] },
+  "쇼핑/리뷰":    { emoji:"🛍️", color:"#FF9800", subs:["전체","제품리뷰","언박싱","맛집"] },
+  "뉴스/정치":     { emoji:"📰", color:"#607D8B", subs:["전체","국내정치","해외이슈","사회"] },
 };
 
 let TAXONOMY = (() => {
@@ -196,6 +196,76 @@ const SortFilter = ({ sortBy, setSortBy, sortDir, setSortDir }) => {
                 {opt.label}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────
+// 카테고리 드롭다운
+// ─────────────────────────────────────────────
+const CategoryDropdown = ({ mainCat, onSelect, cards }) => {
+  const { open, setOpen, ref } = useDropdown();
+  const cur = TAXONOMY[mainCat];
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={()=>setOpen(o=>!o)}
+        className="flex items-center gap-1.5 text-xs font-bold border-2 rounded-xl px-3 py-1.5 whitespace-nowrap transition-all"
+        style={mainCat!=="전체"?{borderColor:cur?.color,backgroundColor:cur?.color+"15",color:cur?.color}:{borderColor:"#e5e7eb",backgroundColor:"white",color:"#374151"}}>
+        <span>{cur?.emoji}</span>{mainCat}
+        <span className="opacity-50 text-xs">{mainCat==="전체"?cards.length:cards.filter(c=>c.mainCat===mainCat).length}</span>
+        <svg className={`w-3 h-3 transition-transform ${open?"rotate-180":""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      {open&&(
+        <div className="absolute left-0 top-full mt-1.5 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 w-52 overflow-hidden">
+          <div className="p-1.5 max-h-72 overflow-y-auto">
+            {Object.entries(TAXONOMY).map(([cat,{emoji,color:c}])=>{
+              const count = cat==="전체"?cards.length:cards.filter(i=>i.mainCat===cat).length;
+              const isActive = mainCat===cat;
+              return (
+                <button key={cat} onClick={()=>{onSelect(cat);setOpen(false);}}
+                  className="w-full text-left flex items-center gap-2 text-sm px-3 py-2 rounded-xl font-medium transition-colors"
+                  style={isActive?{backgroundColor:c,color:"white"}:{color:"#374151"}}>
+                  <span>{emoji}</span>
+                  <span className="flex-1">{cat}</span>
+                  <span className="opacity-50 text-xs">{count}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SubCatDropdown = ({ mainCat, subCat, onSelect, cards, color }) => {
+  const { open, setOpen, ref } = useDropdown();
+  const subs = TAXONOMY[mainCat]?.subs||[];
+  if (subs.length===0) return null;
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={()=>setOpen(o=>!o)}
+        className="flex items-center gap-1.5 text-xs font-bold border rounded-xl px-3 py-1.5 whitespace-nowrap transition-all"
+        style={subCat&&subCat!=="전체"?{borderColor:color,backgroundColor:color+"15",color}:{borderColor:"#e5e7eb",backgroundColor:"white",color:"#374151"}}>
+        {subCat||"소분류"}
+        <svg className={`w-3 h-3 transition-transform ${open?"rotate-180":""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      {open&&(
+        <div className="absolute left-0 top-full mt-1.5 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 w-44 overflow-hidden">
+          <div className="p-1.5">
+            {subs.map(sub=>{
+              const count = sub==="전체"?cards.filter(c=>c.mainCat===mainCat).length:cards.filter(c=>c.mainCat===mainCat&&c.subCat===sub).length;
+              return (
+                <button key={sub} onClick={()=>{onSelect(sub);setOpen(false);}}
+                  className="w-full text-left flex items-center justify-between text-sm px-3 py-2 rounded-xl font-medium transition-colors"
+                  style={(subCat||"전체")===sub?{backgroundColor:color,color:"white"}:{color:"#374151"}}>
+                  <span>{sub}</span><span className="opacity-50 text-xs">{count}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -404,7 +474,7 @@ const MyViewsModal = ({ item, onClose, onSave }) => {
 // ─────────────────────────────────────────────
 // 설정 모달
 // ─────────────────────────────────────────────
-const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory }) => {
+const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory, onAddSub, onRemoveSub }) => {
   const [key, setKey]         = useState(apiKey);
   const [gKey, setGKey]       = useState(geminiKey);
   const [showYt, setShowYt]   = useState(false);
@@ -413,6 +483,8 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
   const [newCatName, setNewCatName]   = useState("");
   const [newCatEmoji, setNewCatEmoji] = useState("🎬");
   const [newCatColor, setNewCatColor] = useState("#E74C3C");
+  const [expandedCat, setExpandedCat] = useState(null);
+  const [newSub, setNewSub]           = useState("");
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
@@ -458,12 +530,39 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
           <div className="bg-gray-50 rounded-2xl p-4 mb-3">
             <label className="text-xs font-black text-gray-600 block mb-3">📂 카테고리 관리</label>
             <div className="flex flex-wrap gap-2 mb-3">
-              {Object.entries(taxonomy).map(([name,{emoji,color}])=>(
-                <div key={name} className="flex items-center gap-1 rounded-full px-2.5 py-1" style={{backgroundColor:color+"20",border:`1px solid ${color}40`}}>
-                  <span className="text-xs">{emoji}</span>
-                  <span className="text-xs font-bold" style={{color}}>{name}</span>
-                  {name!=="전체"&&(
-                    <button onClick={()=>onRemoveCategory(name)} className="text-gray-400 hover:text-red-500 text-xs ml-1">✕</button>
+              {Object.entries(taxonomy).map(([name,{emoji,color,subs}])=>(
+                <div key={name} className="w-full">
+                  <div className="flex items-center gap-1 rounded-xl px-2.5 py-1.5" style={{backgroundColor:color+"15",border:`1px solid ${color}30`}}>
+                    <span className="text-xs">{emoji}</span>
+                    <span className="text-xs font-bold flex-1" style={{color}}>{name}</span>
+                    {name!=="전체"&&(
+                      <>
+                        <button onClick={()=>setExpandedCat(expandedCat===name?null:name)}
+                          className="text-xs text-gray-400 hover:text-gray-600 px-1">
+                          {expandedCat===name?"▲":"소분류"}
+                        </button>
+                        <button onClick={()=>onRemoveCategory(name)} className="text-gray-400 hover:text-red-500 text-xs">✕</button>
+                      </>
+                    )}
+                  </div>
+                  {expandedCat===name&&(
+                    <div className="mt-1 ml-3 p-2 bg-gray-50 rounded-xl">
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {(subs||[]).filter(s=>s!=="전체").map(sub=>(
+                          <div key={sub} className="flex items-center gap-1 bg-white border border-gray-200 rounded-full px-2 py-0.5">
+                            <span className="text-xs text-gray-700">{sub}</span>
+                            <button onClick={()=>onRemoveSub(name,sub)} className="text-gray-300 hover:text-red-400 text-xs">✕</button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-1">
+                        <input value={newSub} onChange={e=>setNewSub(e.target.value)}
+                          onKeyDown={e=>{if(e.key==="Enter"&&newSub.trim()){onAddSub(name,newSub.trim());setNewSub("");}}}
+                          placeholder="소분류 추가..." className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none"/>
+                        <button onClick={()=>{if(newSub.trim()){onAddSub(name,newSub.trim());setNewSub("");}}}
+                          className="px-2 py-1.5 rounded-lg text-xs font-black text-gray-900" style={{background:"#00ff97"}}>추가</button>
+                      </div>
+                    </div>
                   )}
                 </div>
               ))}
@@ -1698,8 +1797,10 @@ export default function ZeroClip() {
   const [loggedIn, setLoggedIn]     = useState(()=>sessionStorage.getItem("zc_auth")==="1");
   const [taxVersion, setTaxVersion] = useState(0); // taxonomy 변경 감지용
   const saveTAXONOMY = (t) => { TAXONOMY = t; localStorage.setItem("zc_taxonomy", JSON.stringify(t)); setTaxVersion(v=>v+1); };
-  const addCategory    = (name, emoji, color) => { if (!name.trim()||TAXONOMY[name]) return; saveTAXONOMY({...TAXONOMY, [name]:{emoji, color}}); };
+  const addCategory    = (name, emoji, color) => { if (!name.trim()||TAXONOMY[name]) return; saveTAXONOMY({...TAXONOMY, [name]:{emoji, color, subs:["전체"]}}); };
   const removeCategory = (name) => { if (name==="전체") return; const t={...TAXONOMY}; delete t[name]; saveTAXONOMY(t); };
+  const addSub    = (cat, sub) => { if (!TAXONOMY[cat]||TAXONOMY[cat].subs?.includes(sub)) return; const t={...TAXONOMY,[cat]:{...TAXONOMY[cat],subs:[...(TAXONOMY[cat].subs||["전체"]),sub]}}; saveTAXONOMY(t); };
+  const removeSub = (cat, sub) => { const t={...TAXONOMY,[cat]:{...TAXONOMY[cat],subs:(TAXONOMY[cat].subs||[]).filter(s=>s!==sub)}}; saveTAXONOMY(t); };
 
   const [cards, setCards]           = useState(()=>{
     try { return JSON.parse(localStorage.getItem("zc_cards")||"[]"); } catch { return []; }
@@ -1711,7 +1812,7 @@ export default function ZeroClip() {
   const [selectedIds, setSelectedIds]= useState([]);
   const [sortBy, setSortBy]         = useState("multiplier");
   const [sortDir, setSortDir]       = useState("desc");
-  const [period, setPeriod]         = useState("all");
+  const [period, setPeriod]         = useState("week");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo]     = useState("");
   const [showAdd, setShowAdd]       = useState(false);
@@ -1888,37 +1989,20 @@ export default function ZeroClip() {
             ))}
           </div>
 
-          {/* 대분류 탭 (갤러리만) */}
+          {/* 대분류/소분류/기간 필터 (갤러리만) - 드롭다운 스타일 */}
           {tab==="gallery"&&(
             <>
-              <div className="flex gap-1.5 overflow-x-auto py-2 scrollbar-hide border-t border-gray-100">
-                {Object.entries(TAXONOMY).map(([cat,{emoji,color:c}])=>{
-                  const count=cat==="전체"?cards.length:cards.filter(i=>i.mainCat===cat).length;
-                  const isActive=mainCat===cat;
-                  return (
-                    <button key={cat} onClick={()=>handleMainCat(cat)}
-                      className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
-                      style={isActive?{backgroundColor:c,color:"white",boxShadow:`0 4px 12px ${c}50`}:{backgroundColor:"#f3f4f6",color:"#6b7280"}}>
-                      <span>{emoji}</span>{cat}<span className="opacity-60">{count}</span>
-                    </button>
-                  );
-                })}
+              <div className="flex gap-2 py-2 border-t border-gray-100 flex-wrap">
+                {/* 카테고리 드롭다운 */}
+                <CategoryDropdown mainCat={mainCat} onSelect={handleMainCat} cards={cards}/>
+                {/* 소분류 드롭다운 (소분류 있을 때만) */}
+                {TAXONOMY[mainCat]?.subs?.length>0&&(
+                  <SubCatDropdown mainCat={mainCat} subCat={subCat} onSelect={setSubCat} cards={cards} color={TAXONOMY[mainCat]?.color}/>
+                )}
+                <TagFilter allTags={allTags} activeTag={activeTag} setActiveTag={setActiveTag}/>
+                <PeriodFilter period={period} setPeriod={setPeriod} customFrom={customFrom} setCustomFrom={setCustomFrom} customTo={customTo} setCustomTo={setCustomTo}/>
+                <SortFilter sortBy={sortBy} setSortBy={setSortBy} sortDir={sortDir} setSortDir={setSortDir}/>
               </div>
-              {subs.length>0&&(
-                <div className="flex gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
-                  {subs.map(sub=>{
-                    const count=sub==="전체"?cards.filter(i=>i.mainCat===mainCat).length:cards.filter(i=>i.mainCat===mainCat&&i.subCat===sub).length;
-                    const isActive=subCat===sub;
-                    return (
-                      <button key={sub} onClick={()=>setSubCat(sub)}
-                        className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
-                        style={isActive?{backgroundColor:color+"20",color,border:`1.5px solid ${color}`}:{backgroundColor:"#f9fafb",color:"#9ca3af",border:"1.5px solid #e5e7eb"}}>
-                        {sub}<span className="opacity-60">{count}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
               <div className="flex items-center gap-2 pb-2">
                 <span className="text-xs text-gray-400">{filtered.length}개 소재</span>
                 {bookmarkOnly&&<span className="text-xs bg-yellow-100 text-yellow-700 font-bold px-2 py-0.5 rounded-full">★ 북마크만</span>}
@@ -1978,7 +2062,7 @@ export default function ZeroClip() {
       {myViewsTarget    &&<MyViewsModal      item={myViewsTarget} onClose={()=>setMyViewsTarget(null)} onSave={saveMyViews}/>}
       {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)}/>}
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
-      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory}/>}
+      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub}/>}
       {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)} apiKey={apiKey}/>}
       {showCategoryFetch&&<CategoryAutoFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowCategoryFetch(false)}/>}
       {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowChannelFetch(false)}
