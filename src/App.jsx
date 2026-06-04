@@ -318,7 +318,7 @@ const ScriptModal = ({ item, onClose, onSave, geminiKey }) => {
     setLoading(true); setError("");
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1717,9 +1717,59 @@ const Dashboard = ({ cards, allTags }) => {
 };
 
 // ─────────────────────────────────────────────
+// 카테고리 수정 모달
+const CatEditModal = ({ item, onClose, onSave }) => {
+  const [mainCat, setMainCat] = useState(item.mainCat||"전체");
+  const [subCat, setSubCat]   = useState(item.subCat||"전체");
+  const mainCats = Object.keys(TAXONOMY);
+  const subs     = TAXONOMY[mainCat]?.subs||[];
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xs" onClick={e=>e.stopPropagation()}>
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-sm font-black text-gray-900">📂 카테고리 수정</h2>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 text-xs">✕</button>
+        </div>
+        <div className="p-5 space-y-3">
+          <p className="text-xs text-gray-500 line-clamp-1 font-medium">{item.title}</p>
+          <div>
+            <label className="text-xs font-black text-gray-600 block mb-2">대분류</label>
+            <div className="flex flex-wrap gap-1.5">
+              {mainCats.map(c=>(
+                <button key={c} onClick={()=>{setMainCat(c);setSubCat("전체");}}
+                  className="px-2.5 py-1 rounded-xl text-xs font-bold transition-all"
+                  style={mainCat===c?{backgroundColor:TAXONOMY[c]?.color,color:"white"}:{backgroundColor:"#f3f4f6",color:"#6b7280"}}>
+                  {TAXONOMY[c]?.emoji} {c}
+                </button>
+              ))}
+            </div>
+          </div>
+          {subs.filter(s=>s!=="전체").length>0&&(
+            <div>
+              <label className="text-xs font-black text-gray-600 block mb-2">소분류</label>
+              <div className="flex flex-wrap gap-1.5">
+                {subs.map(s=>(
+                  <button key={s} onClick={()=>setSubCat(s)}
+                    className="px-2.5 py-1 rounded-xl text-xs font-bold transition-all"
+                    style={subCat===s?{backgroundColor:TAXONOMY[mainCat]?.color,color:"white"}:{backgroundColor:"#f3f4f6",color:"#6b7280"}}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <button onClick={()=>{onSave(item.id,mainCat,subCat);onClose();}}
+            className="w-full py-2.5 rounded-2xl text-sm font-black text-gray-900"
+            style={{background:"#00ff97"}}>저장</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // 비디오 카드
 // ─────────────────────────────────────────────
-const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, onTag, onMyViews, onDelete, allTags }) => {
+const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, onTag, onMyViews, onDelete, onCatEdit, allTags }) => {
   const color = TAXONOMY[item.mainCat]?.color||"#374151";
   return (
     <div
@@ -1727,7 +1777,8 @@ const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, o
       style={{boxShadow:isSelected?`0 0 0 2.5px ${color}, 0 8px 30px ${color}30`:"0 2px 12px rgba(0,0,0,0.08)"}}
       onClick={()=>onSelect(item.id)}
     >
-      <div className="relative overflow-hidden" style={{aspectRatio:"9/14"}}>
+      {/* 썸네일 - 고정 높이 */}
+      <div className="relative overflow-hidden" style={{height:"220px"}}>
         <img src={item.thumbnail||`https://picsum.photos/seed/${item.id}/400/600`} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent"/>
         <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-sm text-white text-xs font-black px-2 py-1 rounded-lg">{item.multiplier||"—"}</div>
@@ -1745,24 +1796,18 @@ const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, o
           </div>
         </div>
         <div className="absolute bottom-2 left-2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-lg">{item.daysAgo}</div>
-        {item.myViews&&<div className="absolute bottom-2 right-2 bg-green-500/90 text-white text-xs font-bold px-1.5 py-0.5 rounded-lg">📈</div>}
       </div>
+      {/* 카드 하단 - 고정 레이아웃 */}
       <div className="p-3">
-        <h3 className="text-sm font-bold text-gray-900 leading-snug mb-1 line-clamp-2">{item.title}</h3>
-        <p className="text-xs text-gray-400 mb-1.5">@{item.channel}</p>
-        {item.tags?.length>0&&(
-          <div className="flex flex-wrap gap-1 mb-2">
-            {item.tags.slice(0,2).map(tag=><span key={tag} className="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">{tag}</span>)}
-            {item.tags.length>2&&<span className="text-xs text-gray-400">+{item.tags.length-2}</span>}
-          </div>
-        )}
-        {item.memo&&(
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-2 py-1.5 mb-2">
-            <p className="text-xs text-yellow-700 line-clamp-1">✏️ {item.memo}</p>
-          </div>
-        )}
-        <div className="flex items-center justify-between mb-2.5">
-          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{backgroundColor:color+"20",color}}>{item.subCat||item.mainCat}</span>
+        <h3 className="text-sm font-bold text-gray-900 leading-snug mb-1 line-clamp-2" style={{minHeight:"2.5rem"}}>{item.title}</h3>
+        <p className="text-xs text-gray-400 mb-2">@{item.channel}</p>
+        <div className="flex items-center justify-between mb-2">
+          {/* 카테고리 클릭하면 수정 가능 */}
+          <button onClick={e=>{e.stopPropagation();onCatEdit(item);}}
+            className="text-xs font-bold px-2 py-0.5 rounded-full hover:opacity-70 transition-opacity"
+            style={{backgroundColor:color+"20",color}}>
+            {TAXONOMY[item.mainCat]?.emoji} {item.subCat&&item.subCat!=="전체"?item.subCat:item.mainCat}
+          </button>
           <div className="flex items-center gap-1">
             <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
             <span className="text-xs font-bold text-gray-700">{item.views||"—"}</span>
@@ -1770,7 +1815,7 @@ const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, o
         </div>
         <div className="grid grid-cols-2 gap-1 mb-1">
           <a href={item.url||"#"} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}
-            className="flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-bold hover:opacity-80 transition-opacity col-span-1"
+            className="flex items-center justify-center gap-1 py-1.5 rounded-xl text-xs font-bold hover:opacity-80 transition-opacity"
             style={{backgroundColor:color+"15",color}}>
             <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/><path fill="white" d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
             원본
@@ -1820,6 +1865,8 @@ export default function ZeroClip() {
   const [scriptTarget, setScriptTarget] = useState(null);
   const [tagTarget, setTagTarget]   = useState(null);
   const [myViewsTarget, setMyViewsTarget] = useState(null);
+  const [catEditTarget, setCatEditTarget] = useState(null);
+  const saveCat = (id, mainCat, subCat) => setCards(p=>{ const n=p.map(c=>c.id===id?{...c,mainCat,subCat}:c); localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
   const [aiTargets, setAiTargets]   = useState(null);
   const [showSettings, setShowSettings]         = useState(false);
   const [showChannelFetch, setShowChannelFetch]   = useState(false);
@@ -2026,7 +2073,7 @@ export default function ZeroClip() {
                 <VideoCard key={item.id} item={item}
                   onSelect={toggleSelect} isSelected={selectedIds.includes(item.id)}
                   onBookmark={toggleBookmark} onMemo={setMemoTarget} onScript={setScriptTarget}
-                  onTag={setTagTarget} onMyViews={setMyViewsTarget} onDelete={deleteCard} allTags={allTags}/>
+                  onTag={setTagTarget} onMyViews={setMyViewsTarget} onDelete={deleteCard} onCatEdit={setCatEditTarget} allTags={allTags}/>
               ))}
             </div>
           )}
@@ -2055,6 +2102,7 @@ export default function ZeroClip() {
       {scriptTarget     &&<ScriptModal       item={scriptTarget}  onClose={()=>setScriptTarget(null)}  onSave={saveScript} geminiKey={geminiKey}/>}
       {tagTarget        &&<TagModal          item={tagTarget}     onClose={()=>setTagTarget(null)}     onSave={saveTags} allTags={allTags}/>}
       {myViewsTarget    &&<MyViewsModal      item={myViewsTarget} onClose={()=>setMyViewsTarget(null)} onSave={saveMyViews}/>}
+      {catEditTarget    &&<CatEditModal      item={catEditTarget} onClose={()=>setCatEditTarget(null)} onSave={saveCat}/>}
       {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)}/>}
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
       {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub}/>}
