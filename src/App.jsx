@@ -1030,11 +1030,233 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
 // 채널 탭
 // ─────────────────────────────────────────────
 const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatChange, onFilterChannel }) => {
-  const [selectedCh, setSelectedCh]   = useState(null); // 선택된 채널명
-  const [editingCh, setEditingCh]     = useState(null); // 카테고리 일괄 수정 대상
-  const [bulkMainCat, setBulkMainCat] = useState("전체");
-  const [bulkSubCat, setBulkSubCat]   = useState("전체");
-  const [chSearch, setChSearch]       = useState("");
+  const [selectedCh, setSelectedCh]     = useState(null);
+  const [editingCh, setEditingCh]       = useState(null);
+  const [bulkMainCat, setBulkMainCat]   = useState("전체");
+  const [bulkSubCats, setBulkSubCats]   = useState([]);
+  const [chSearch, setChSearch]         = useState("");
+  const [filterCat, setFilterCat]       = useState("전체"); // 채널 목록 카테고리 필터
+
+  const channels = useMemo(()=>{
+    const map = {};
+    cards.forEach(c=>{
+      if (!c.channel) return;
+      if (!map[c.channel]) map[c.channel] = { name:c.channel, count:0, cats:{}, thumbnail:"", mainCat:"전체" };
+      map[c.channel].count++;
+      map[c.channel].cats[c.mainCat] = (map[c.channel].cats[c.mainCat]||0)+1;
+      if (!map[c.channel].thumbnail && c.thumbnail) map[c.channel].thumbnail = c.thumbnail;
+      const topCat = Object.entries(map[c.channel].cats).sort((a,b)=>b[1]-a[1])[0]?.[0]||"전체";
+      map[c.channel].mainCat = topCat;
+    });
+    return Object.values(map).sort((a,b)=>b.count-a.count);
+  },[cards]);
+
+  // 카테고리별 채널 수 집계 (미니 대시보드용)
+  const catStats = useMemo(()=>{
+    const map = {};
+    channels.forEach(ch=>{ map[ch.mainCat]=(map[ch.mainCat]||0)+1; });
+    return map;
+  },[channels]);
+
+  const toggleBulkSub = s => setBulkSubCats(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s]);
+
+  const filtered = channels
+    .filter(c=>filterCat==="전체"||c.mainCat===filterCat)
+    .filter(c=>!chSearch||c.name.includes(chSearch));
+
+  const selectedCards = selectedCh ? cards.filter(c=>c.channel===selectedCh) : [];
+  const mainCats = Object.keys(TAXONOMY);
+  const getYtUrl = ch => `https://www.youtube.com/@${encodeURIComponent(ch.name)}`;
+
+  // ── 채널 상세 뷰 ──
+  if (selectedCh) {
+    const ch = channels.find(c=>c.name===selectedCh);
+    const bulkSubs = (TAXONOMY[bulkMainCat]?.subs||[]).filter(s=>s!=="전체");
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-5">
+        <div className="flex items-center gap-3 mb-5 flex-wrap">
+          <button onClick={()=>{setSelectedCh(null);setEditingCh(null);}} className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 text-sm">←</button>
+          {ch?.thumbnail&&<img src={ch.thumbnail} className="w-10 h-10 rounded-full object-cover flex-shrink-0"/>}
+          <div className="flex-1 min-w-0">
+            <h2 className="text-base font-black text-gray-900 truncate">{selectedCh}</h2>
+            <p className="text-xs text-gray-400">{selectedCards.length}개 소재</p>
+          </div>
+          <a href={getYtUrl(ch)} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl text-white flex-shrink-0" style={{background:"#ff0000"}}>
+            ▶ YouTube
+          </a>
+          <button onClick={()=>setEditingCh(editingCh===selectedCh?null:selectedCh)}
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 flex-shrink-0">
+            📂 카테고리 일괄 변경
+          </button>
+        </div>
+
+        {/* 카테고리 일괄 변경 패널 */}
+        {editingCh===selectedCh&&(
+          <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm space-y-3">
+            <p className="text-xs font-black text-gray-700">"{selectedCh}" 채널 카드 {selectedCards.length}개 전체 카테고리 변경</p>
+            <div>
+              <p className="text-xs text-gray-400 mb-2">대분류 선택</p>
+              <div className="flex flex-wrap gap-1.5">
+                {mainCats.filter(c=>c!=="전체").map(c=>(
+                  <button key={c} onClick={()=>{setBulkMainCat(c);setBulkSubCats([]);}}
+                    className="px-2.5 py-1 rounded-xl text-xs font-bold transition-all"
+                    style={bulkMainCat===c?{backgroundColor:TAXONOMY[c]?.color,color:"white"}:{backgroundColor:"#f3f4f6",color:"#6b7280"}}>
+                    {TAXONOMY[c]?.emoji} {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {bulkSubs.length>0&&(
+              <div>
+                <p className="text-xs text-gray-400 mb-2">소분류 선택 <span className="text-gray-300">(여러 개 가능)</span></p>
+                <div className="flex flex-wrap gap-1.5">
+                  {bulkSubs.map(s=>{
+                    const active = bulkSubCats.includes(s);
+                    return (
+                      <button key={s} onClick={()=>toggleBulkSub(s)}
+                        className="px-2.5 py-1 rounded-xl text-xs font-bold transition-all border"
+                        style={active?{backgroundColor:TAXONOMY[bulkMainCat]?.color,color:"white",borderColor:"transparent"}:{backgroundColor:"#f3f4f6",color:"#6b7280",borderColor:"#e5e7eb"}}>
+                        {active&&"✓ "}{s}
+                      </button>
+                    );
+                  })}
+                </div>
+                {bulkSubCats.length>0&&<p className="text-xs text-gray-400 mt-1">선택: {bulkSubCats.join(", ")}</p>}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button onClick={()=>{onBulkCatChange(selectedCh,bulkMainCat,bulkSubCats);setEditingCh(null);}}
+                className="px-4 py-2 rounded-xl text-xs font-black text-gray-900" style={{background:"#00ff97"}}>
+                ✅ {selectedCards.length}개 카드에 적용
+              </button>
+              <button onClick={()=>setEditingCh(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-gray-500 bg-gray-100">취소</button>
+            </div>
+          </div>
+        )}
+
+        <div className="grid gap-3" style={{gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",alignItems:"start"}}>
+          {selectedCards.map(card=>{
+            const color = TAXONOMY[card.mainCat]?.color||"#888";
+            const subs  = Array.isArray(card.subCat)?card.subCat:(card.subCat&&card.subCat!=="전체"?[card.subCat]:[]);
+            return (
+              <div key={card.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
+                <div className="relative" style={{height:"130px"}}>
+                  <img src={card.thumbnail} className="w-full h-full object-cover"/>
+                  <div className="absolute top-1.5 left-1.5 bg-black/70 text-white text-xs font-black px-1.5 py-0.5 rounded-lg">{card.multiplier}</div>
+                </div>
+                <div className="p-2.5">
+                  <p className="text-xs font-bold text-gray-900 line-clamp-2 mb-1.5" style={{minHeight:"2rem"}}>{card.title}</p>
+                  <div className="flex flex-wrap gap-1">
+                    <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{backgroundColor:color+"20",color}}>{TAXONOMY[card.mainCat]?.emoji} {card.mainCat}</span>
+                    {subs.map(s=><span key={s} className="text-xs px-1.5 py-0.5 rounded-full" style={{backgroundColor:color+"10",color,border:`1px solid ${color}30`}}>{s}</span>)}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // ── 채널 목록 뷰 ──
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-5 space-y-4">
+
+      {/* 미니 대시보드 */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm">
+        <p className="text-xs font-black text-gray-500 mb-3">카테고리별 채널 현황</p>
+        <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+          <div className="text-center p-2 bg-gray-50 rounded-xl">
+            <p className="text-lg font-black text-gray-900">{channels.length}</p>
+            <p className="text-xs text-gray-400 mt-0.5">전체</p>
+          </div>
+          {Object.entries(catStats).sort((a,b)=>b[1]-a[1]).map(([cat,cnt])=>{
+            const color = TAXONOMY[cat]?.color||"#888";
+            return (
+              <div key={cat} className="text-center p-2 rounded-xl cursor-pointer hover:opacity-80 transition-opacity"
+                style={{backgroundColor:color+"15"}} onClick={()=>setFilterCat(filterCat===cat?"전체":cat)}>
+                <p className="text-lg font-black" style={{color}}>{cnt}</p>
+                <p className="text-xs mt-0.5 font-medium truncate" style={{color}}>{TAXONOMY[cat]?.emoji} {cat}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 검색 + 카테고리 필터 탭 */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <input value={chSearch} onChange={e=>setChSearch(e.target.value)}
+          placeholder="채널 검색..."
+          className="flex-1 min-w-[160px] text-sm border border-gray-200 rounded-2xl px-4 py-2.5 outline-none focus:border-gray-300"/>
+        <span className="text-xs text-gray-400 font-medium flex-shrink-0">{filtered.length}개 채널</span>
+      </div>
+
+      {/* 카테고리 필터 탭 */}
+      <div className="flex gap-1.5 flex-wrap">
+        <button onClick={()=>setFilterCat("전체")}
+          className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+          style={filterCat==="전체"?{backgroundColor:"#374151",color:"white"}:{backgroundColor:"#f3f4f6",color:"#6b7280"}}>
+          🎯 전체 {channels.length}
+        </button>
+        {Object.entries(catStats).sort((a,b)=>b[1]-a[1]).map(([cat,cnt])=>{
+          const color = TAXONOMY[cat]?.color||"#888";
+          return (
+            <button key={cat} onClick={()=>setFilterCat(filterCat===cat?"전체":cat)}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
+              style={filterCat===cat?{backgroundColor:color,color:"white"}:{backgroundColor:"#f3f4f6",color:"#6b7280"}}>
+              {TAXONOMY[cat]?.emoji} {cat} {cnt}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 채널 카드 목록 */}
+      {filtered.length===0?(
+        <div className="flex flex-col items-center justify-center py-20 text-gray-300">
+          <span className="text-5xl mb-4">📡</span>
+          <p className="font-bold text-lg text-gray-400">채널이 없어요</p>
+          <p className="text-sm text-gray-300 mt-1">📡 채널 수집으로 영상을 추가해보세요</p>
+        </div>
+      ):(
+        <div className="grid gap-4" style={{gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",alignItems:"start"}}>
+          {filtered.map(ch=>{
+            const color = TAXONOMY[ch.mainCat]?.color||"#888";
+            return (
+              <div key={ch.name} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
+                onClick={()=>setSelectedCh(ch.name)}>
+                <div className="relative h-20 bg-gray-100 overflow-hidden">
+                  {ch.thumbnail&&<img src={ch.thumbnail} className="w-full h-full object-cover opacity-50"/>}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"/>
+                  <a href={getYtUrl(ch)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}
+                    className="absolute bottom-2 right-2 w-6 h-6 flex items-center justify-center rounded-full text-white text-xs"
+                    style={{background:"#ff0000"}}>▶</a>
+                </div>
+                <div className="p-3">
+                  <p className="text-sm font-black text-gray-900 truncate mb-1.5">{ch.name}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{backgroundColor:color+"20",color}}>
+                      {TAXONOMY[ch.mainCat]?.emoji} {ch.mainCat}
+                    </span>
+                    <span className="text-xs text-gray-400 font-medium">{ch.count}개</span>
+                  </div>
+                  {Object.keys(ch.cats).length>1&&(
+                    <div className="flex gap-0.5 mt-2 rounded-full overflow-hidden h-1.5">
+                      {Object.entries(ch.cats).sort((a,b)=>b[1]-a[1]).map(([cat,cnt])=>(
+                        <div key={cat} style={{flex:cnt,backgroundColor:TAXONOMY[cat]?.color||"#ddd"}} title={`${cat}: ${cnt}개`}/>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
   // 카드에서 채널 목록 추출
   const channels = useMemo(()=>{
