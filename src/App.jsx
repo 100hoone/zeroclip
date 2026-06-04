@@ -318,7 +318,7 @@ const ScriptModal = ({ item, onClose, onSave, geminiKey }) => {
     setLoading(true); setError("");
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2037,54 +2037,53 @@ const CatEditModal = ({ item, onClose, onSave }) => {
 // ─────────────────────────────────────────────
 const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, onTag, onMyViews, onDelete, onCatEdit, allTags }) => {
   const color = TAXONOMY[item.mainCat]?.color||"#374151";
+  const subs = Array.isArray(item.subCat) ? item.subCat : (item.subCat&&item.subCat!=="전체"?[item.subCat]:[]);
   return (
     <div
       className={`group relative bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${isSelected?"scale-[1.02]":"hover:shadow-xl hover:-translate-y-1"}`}
       style={{boxShadow:isSelected?`0 0 0 2.5px ${color}, 0 8px 30px ${color}30`:"0 2px 12px rgba(0,0,0,0.08)"}}
       onClick={()=>onSelect(item.id)}
     >
-      {/* 썸네일 - 고정 높이 */}
-      <div className="relative overflow-hidden" style={{height:"220px"}}>
+      <div className="relative overflow-hidden" style={{height:"200px"}}>
         <img src={item.thumbnail||`https://picsum.photos/seed/${item.id}/400/600`} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent"/>
         <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-sm text-white text-xs font-black px-2 py-1 rounded-lg">{item.multiplier||"—"}</div>
-        <button onClick={e=>{e.stopPropagation();onBookmark(item.id);}}
-          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center rounded-full transition-all"
-          style={{backgroundColor:item.bookmarked?"#FBBF24":"rgba(0,0,0,0.4)"}}>
-          <span className="text-sm">{item.bookmarked?"★":"☆"}</span>
-        </button>
+        <div className="absolute top-2 right-2 z-10" onClick={e=>e.stopPropagation()}>
+          <button onClick={()=>onBookmark(item.id)}
+            className="w-7 h-7 flex items-center justify-center rounded-full transition-all"
+            style={{backgroundColor:item.bookmarked?"#FBBF24":"rgba(0,0,0,0.4)"}}>
+            <span className="text-sm">{item.bookmarked?"★":"☆"}</span>
+          </button>
+        </div>
         {isSelected&&<div className="absolute top-10 right-2 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-black" style={{backgroundColor:color}}>✓</div>}
-        <button onClick={e=>{e.stopPropagation();if(window.confirm("이 카드를 삭제할까요?"))onDelete(item.id);}}
-          className="absolute bottom-2 right-2 w-6 h-6 flex items-center justify-center rounded-full bg-black/50 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500">✕</button>
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="absolute bottom-2 right-2 z-10" onClick={e=>e.stopPropagation()}>
+          <button onClick={()=>{if(window.confirm("이 카드를 삭제할까요?"))onDelete(item.id);}}
+            className="w-6 h-6 flex items-center justify-center rounded-full bg-black/50 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500">✕</button>
+        </div>
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
           <div className="w-11 h-11 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
             <svg className="w-4 h-4 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
           </div>
         </div>
-        <div className="absolute bottom-2 left-2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-lg">{item.daysAgo}</div>
+        <div className="absolute bottom-2 left-2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-lg pointer-events-none">{item.daysAgo}</div>
       </div>
-      {/* 카드 하단 - 고정 레이아웃 */}
       <div className="p-3">
-        <h3 className="text-sm font-bold text-gray-900 leading-snug mb-1 line-clamp-2" style={{minHeight:"2.5rem"}}>{item.title}</h3>
-        <p className="text-xs text-gray-400 mb-2">@{item.channel}</p>
-        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-          {/* 대분류 */}
+        <h3 className="text-sm font-bold text-gray-900 leading-snug mb-1 line-clamp-2" style={{height:"2.5rem",overflow:"hidden"}}>{item.title}</h3>
+        <p className="text-xs text-gray-400 mb-2 truncate">@{item.channel}</p>
+        <div className="flex items-center gap-1 mb-2 overflow-hidden">
           <button onClick={e=>{e.stopPropagation();onCatEdit(item);}}
             className="text-xs font-bold px-2 py-0.5 rounded-full hover:opacity-70 transition-opacity flex-shrink-0"
             style={{backgroundColor:color+"20",color}}>
             {TAXONOMY[item.mainCat]?.emoji} {item.mainCat}
           </button>
-          {/* 소분류 태그들 */}
-          {(()=>{
-            const subs = Array.isArray(item.subCat) ? item.subCat : (item.subCat&&item.subCat!=="전체"?[item.subCat]:[]);
-            return subs.map(s=>(
-              <span key={s} className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0"
-                style={{backgroundColor:color+"10",color,border:`1px solid ${color}30`}}>
-                {s}
-              </span>
-            ));
-          })()}
-          <div className="ml-auto flex items-center gap-1">
+          {subs.slice(0,2).map(s=>(
+            <span key={s} className="text-xs px-1.5 py-0.5 rounded-full flex-shrink-0 max-w-[56px] truncate"
+              style={{backgroundColor:color+"10",color,border:`1px solid ${color}30`}}>
+              {s}
+            </span>
+          ))}
+          {subs.length>2&&<span className="text-xs text-gray-400 flex-shrink-0">+{subs.length-2}</span>}
+          <div className="ml-auto flex items-center gap-0.5 flex-shrink-0">
             <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
             <span className="text-xs font-bold text-gray-700">{item.views||"—"}</span>
           </div>
@@ -2102,14 +2101,15 @@ const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, o
           </button>
         </div>
         <div className="grid grid-cols-3 gap-1">
-          <button onClick={e=>{e.stopPropagation();onMemo(item);}} className="flex items-center justify-center py-1.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200">✏️</button>
-          <button onClick={e=>{e.stopPropagation();onTag(item);}} className="flex items-center justify-center py-1.5 rounded-xl text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200">🏷️</button>
-          <button onClick={e=>{e.stopPropagation();onMyViews(item);}} className={`flex items-center justify-center py-1.5 rounded-xl text-xs font-bold transition-colors ${item.myViews?"bg-green-100 text-green-700":"bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>📈</button>
+          <button onClick={e=>{e.stopPropagation();onMemo(item);}} className="flex items-center justify-center py-1.5 rounded-xl text-xs bg-gray-100 text-gray-600 hover:bg-gray-200">✏️</button>
+          <button onClick={e=>{e.stopPropagation();onTag(item);}} className="flex items-center justify-center py-1.5 rounded-xl text-xs bg-gray-100 text-gray-600 hover:bg-gray-200">🏷️</button>
+          <button onClick={e=>{e.stopPropagation();onMyViews(item);}} className={`flex items-center justify-center py-1.5 rounded-xl text-xs transition-colors ${item.myViews?"bg-green-100 text-green-700":"bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>📈</button>
         </div>
       </div>
     </div>
   );
 };
+
 
 // ─────────────────────────────────────────────
 // 메인
