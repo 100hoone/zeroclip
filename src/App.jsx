@@ -787,6 +787,123 @@ const CAT_KEYWORDS = {
   "엔터테인먼트": "엔터 예능 연예 인기 쇼츠",
 };
 
+// 영상 추가 모달
+// ─────────────────────────────────────────────
+const VideoAddModal = ({ onAdd, onClose }) => {
+  const [url, setUrl]         = useState("");
+  const [title, setTitle]     = useState("");
+  const [channel, setChannel] = useState("");
+  const [thumbnail, setThumb] = useState("");
+  const [views, setViews]     = useState("");
+  const [selectedCat, setCat] = useState("전체");
+  const [fetching, setFetching] = useState(false);
+  const [error, setError]     = useState("");
+  const mainCats = Object.keys(TAXONOMY);
+
+  const extractVideoId = (u) => {
+    const m = u.match(/(?:v=|youtu\.be\/|shorts\/)([A-Za-z0-9_-]{11})/);
+    return m?.[1]||null;
+  };
+
+  const fetchMeta = async () => {
+    if (!url.trim()) return;
+    setFetching(true); setError("");
+    try {
+      const res  = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+      const data = await res.json();
+      setTitle(data.title||"");
+      setChannel(data.author_name||"");
+      const vid = extractVideoId(url);
+      setThumb(vid?`https://img.youtube.com/vi/${vid}/mqdefault.jpg`:"");
+    } catch { setError("영상 정보를 가져올 수 없어요. URL을 확인해주세요."); }
+    setFetching(false);
+  };
+
+  const handleAdd = () => {
+    if (!url.trim()||!title.trim()) { setError("URL과 제목은 필수예요"); return; }
+    onAdd({
+      id: Date.now()+Math.random(),
+      title, channel, views: views||"?", multiplier:"×?",
+      mainCat: selectedCat, subCat:"", daysAgo:"직접추가",
+      url, thumbnail, bookmarked:false, memo:"", script:"", tags:[], myViews:""
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md" onClick={e=>e.stopPropagation()}>
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-black text-gray-900">🎬 영상 추가</h2>
+            <p className="text-xs text-gray-400 mt-0.5">YouTube 영상 URL로 바로 추가해요</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">✕</button>
+        </div>
+        <div className="p-5 space-y-4">
+          {/* URL 입력 */}
+          <div>
+            <label className="text-xs font-black text-gray-600 block mb-2">YouTube URL</label>
+            <div className="flex gap-2">
+              <input value={url} onChange={e=>setUrl(e.target.value)} onKeyDown={e=>e.key==="Enter"&&fetchMeta()}
+                placeholder="https://youtube.com/shorts/..."
+                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-gray-400"/>
+              <button onClick={fetchMeta} disabled={fetching||!url.trim()}
+                className="px-3 py-2.5 rounded-xl text-xs font-black text-gray-900 disabled:opacity-40 flex-shrink-0"
+                style={{background:"#00ff97"}}>
+                {fetching?"...":"자동완성"}
+              </button>
+            </div>
+            {error&&<p className="text-xs text-red-500 mt-1">{error}</p>}
+          </div>
+
+          {/* 썸네일 미리보기 */}
+          {thumbnail&&(
+            <div className="flex gap-3 items-start bg-gray-50 rounded-2xl p-3">
+              <img src={thumbnail} className="w-20 h-14 object-cover rounded-xl flex-shrink-0"/>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-gray-900 line-clamp-2">{title}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{channel}</p>
+              </div>
+            </div>
+          )}
+
+          {/* 제목 (수동 입력 가능) */}
+          <div>
+            <label className="text-xs font-black text-gray-600 block mb-2">제목</label>
+            <input value={title} onChange={e=>setTitle(e.target.value)}
+              placeholder="영상 제목"
+              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-gray-400"/>
+          </div>
+
+          {/* 조회수 + 카테고리 */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="text-xs font-black text-gray-600 block mb-2">조회수 (선택)</label>
+              <input value={views} onChange={e=>setViews(e.target.value)}
+                placeholder="예: 50만"
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-gray-400"/>
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-black text-gray-600 block mb-2">카테고리</label>
+              <select value={selectedCat} onChange={e=>setCat(e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white">
+                {mainCats.map(c=><option key={c} value={c}>{TAXONOMY[c]?.emoji} {c}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <button onClick={handleAdd} disabled={!url.trim()||!title.trim()}
+            className="w-full py-3 rounded-2xl text-sm font-black text-gray-900 disabled:opacity-40"
+            style={{background:"#00ff97"}}>
+            ✅ 갤러리에 추가
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
   const [maxResults, setMaxResults] = useState(20);
   const [loading, setLoading]       = useState(false);
@@ -1704,6 +1821,7 @@ export default function ZeroClip() {
   const [showSettings, setShowSettings]         = useState(false);
   const [showChannelFetch, setShowChannelFetch]   = useState(false);
   const [showCategoryFetch, setShowCategoryFetch] = useState(false);
+  const [showVideoAdd, setShowVideoAdd] = useState(false);
   const [showExport, setShowExport]               = useState(false);
   const [bookmarkOnly, setBookmarkOnly] = useState(false);
   const [activeTag, setActiveTag]   = useState("");
@@ -1837,14 +1955,14 @@ export default function ZeroClip() {
               <SortFilter sortBy={sortBy} setSortBy={setSortBy} sortDir={sortDir} setSortDir={setSortDir}/>
             </>}
 
-            <button onClick={()=>setShowCategoryFetch(true)}
-              className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 flex-shrink-0">
-              🔥 카테고리 수집
-            </button>
             <button onClick={()=>setShowChannelFetch(true)}
               className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl text-gray-900 hover:opacity-80 transition-all flex-shrink-0"
               style={{background:"#00ff97"}}>
               📡 채널 수집
+            </button>
+            <button onClick={()=>setShowVideoAdd(true)}
+              className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 flex-shrink-0">
+              🎬 영상 추가
             </button>
             {refChannels.length>0&&(
               <button onClick={autoSync} disabled={autoSyncing}
@@ -1960,6 +2078,7 @@ export default function ZeroClip() {
       {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)}/>}
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
       {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory}/>}
+      {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)}/>}
       {showCategoryFetch&&<CategoryAutoFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowCategoryFetch(false)}/>}
       {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowChannelFetch(false)}
         onRegisterChannel={ch=>{ if(!refChannels.find(r=>r.url===ch.url)) saveRefChannels([...refChannels,ch]); }}/>}
