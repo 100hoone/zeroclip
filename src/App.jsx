@@ -2114,7 +2114,7 @@ export default function ZeroClip() {
   const [search, setSearch]         = useState("");
   const [selectedIds, setSelectedIds]= useState([]);
   const [sortBy, setSortBy]         = useState("multiplier");
-  const [sortDir, setSortDir]       = useState("desc");
+  const [sortDir, setSortDir]       = useState("asc");
   const [period, setPeriod]         = useState("week");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo]     = useState("");
