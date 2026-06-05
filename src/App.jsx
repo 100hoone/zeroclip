@@ -277,23 +277,21 @@ const SubCatDropdown = ({ mainCat, subCat, onSelect, cards, color }) => {
 // 태그 필터 드롭다운
 // ─────────────────────────────────────────────
 const TagFilter = ({ allTags, activeTag, setActiveTag }) => {
-  const { open, setOpen, ref } = useDropdown();
   return (
-    <div className="relative" ref={ref}>
-      <button onClick={()=>setOpen(o=>!o)} className={`flex items-center gap-1.5 text-xs font-semibold border rounded-xl px-3 py-1.5 whitespace-nowrap transition-all ${activeTag?"bg-gray-900 text-white border-gray-900":"border-gray-200 bg-white text-gray-700 hover:bg-gray-50"}`}>
-        🏷️ {activeTag||"태그"}
-        <svg className={`w-3 h-3 transition-transform ${open?"rotate-180":""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <span className="text-gray-300 flex-shrink-0" title="태그 필터">
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+      </span>
+      <button onClick={()=>setActiveTag("")}
+        className={`text-xs px-2.5 py-1 rounded-xl font-bold transition-all flex-shrink-0 ${!activeTag?"bg-gray-900 text-white":"bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+        전체
       </button>
-      {open&&(
-        <div className="absolute right-0 top-full mt-1.5 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 w-52 overflow-hidden">
-          <div className="p-2">
-            <button onClick={()=>{setActiveTag("");setOpen(false);}} className={`w-full text-left text-sm px-3 py-2 rounded-xl font-medium ${!activeTag?"bg-gray-900 text-white":"text-gray-700 hover:bg-gray-100"}`}>전체 태그</button>
-            {allTags.map(tag=>(
-              <button key={tag} onClick={()=>{setActiveTag(tag);setOpen(false);}} className={`w-full text-left text-sm px-3 py-2 rounded-xl font-medium ${activeTag===tag?"bg-gray-900 text-white":"text-gray-700 hover:bg-gray-100"}`}>{tag}</button>
-            ))}
-          </div>
-        </div>
-      )}
+      {allTags.map(tag=>(
+        <button key={tag} onClick={()=>setActiveTag(activeTag===tag?"":tag)}
+          className={`text-xs px-2.5 py-1 rounded-xl font-bold transition-all flex-shrink-0 ${activeTag===tag?"bg-gray-900 text-white":"bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+          {tag}
+        </button>
+      ))}
     </div>
   );
 };
@@ -604,9 +602,7 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
               {allTags.map(tag=>(
                 <div key={tag} className="flex items-center gap-1 bg-white border border-gray-200 rounded-full px-2.5 py-1">
                   <span className="text-xs font-bold text-gray-700">{tag}</span>
-                  {!DEFAULT_TAGS.includes(tag)&&(
-                    <button onClick={()=>onRemoveTag(tag)} className="text-gray-400 hover:text-red-500 text-xs ml-1">✕</button>
-                  )}
+                  <button onClick={()=>onRemoveTag(tag)} className="text-gray-400 hover:text-red-500 text-xs ml-1">✕</button>
                 </div>
               ))}
             </div>
