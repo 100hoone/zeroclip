@@ -1772,7 +1772,7 @@ const AiAnalysisModal = ({ items, onClose, geminiKey }) => {
           {loading?(
             <div className="flex flex-col items-center justify-center h-40 gap-3">
               <div className="w-8 h-8 rounded-full border-4 border-indigo-200 border-t-indigo-500 animate-spin"/>
-              <p className="text-sm text-gray-400">Claude가 분석 중이에요...</p>
+              <p className="text-sm text-gray-400">Gemini가 분석 중이에요...</p>
             </div>
           ):result?(
             <pre className="whitespace-pre-wrap text-sm text-gray-800 leading-relaxed font-sans bg-gray-50 rounded-2xl p-4">{result}</pre>
