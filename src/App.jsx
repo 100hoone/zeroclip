@@ -309,26 +309,34 @@ const ScriptModal = ({ item, onClose, onSave, geminiKey }) => {
   const [copied, setCopied]   = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
+  const [mode, setMode]       = useState("transcript"); // transcript | analyze
 
   const copy = ()=>{navigator.clipboard.writeText(text);setCopied(true);setTimeout(()=>setCopied(false),1500);};
 
-  const extractTranscript = async () => {
+  const runGemini = async (selectedMode) => {
+    if (!geminiKey||!geminiKey.startsWith("AIza")) { setError("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return; }
     if (!item.url) { setError("영상 URL이 없어요"); return; }
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setMode(selectedMode);
     try {
-      const res = await fetch('/api/transcript', {
+      const prompts = {
+        transcript: "이 유튜브 영상의 나레이션/대본을 한국어로 추출해줘. 실제로 말하는 내용만, 타임스탬프 없이 대본 텍스트만 출력해줘.",
+        hook: "이 유튜브 쇼츠 영상의 첫 3초 훅 구조를 분석해줘. 어떤 방식으로 시청자를 잡아끄는지, 핵심 패턴이 뭔지 알려줘.",
+        structure: "이 유튜브 쇼츠의 대본 구조를 분석해줘. 도입-전개-결말 구조, 긴장감 조성 방식, 클리프행어 사용 여부 등을 분석해줘."
+      };
+
+      const res = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: item.url })
+        body: JSON.stringify({
+          key: geminiKey,
+          videoUrl: item.url,
+          prompt: prompts[selectedMode]
+        })
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error||"자막을 가져올 수 없어요"); setLoading(false); return; }
-      if (data.transcript) {
-        setText(data.transcript);
-      } else {
-        setError("자막을 찾을 수 없어요");
-      }
-    } catch(e) { setError("자막 추출 중 오류가 발생했어요: " + e.message); }
+      if (!res.ok) { setError(data.error||"오류가 발생했어요"); setLoading(false); return; }
+      setText(data.result);
+    } catch(e) { setError("오류: " + e.message); }
     setLoading(false);
   };
 
@@ -336,30 +344,39 @@ const ScriptModal = ({ item, onClose, onSave, geminiKey }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col" onClick={e=>e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <div><p className="text-xs text-gray-400 mb-0.5">📄 대본</p><h2 className="text-sm font-black text-gray-900 line-clamp-1">{item.title}</h2></div>
+          <div><p className="text-xs text-gray-400 mb-0.5">📄 대본 / 분석</p><h2 className="text-sm font-black text-gray-900 line-clamp-1">{item.title}</h2></div>
           <div className="flex items-center gap-2">
             <button onClick={copy} className={`text-xs font-bold px-3 py-1.5 rounded-xl ${copied?"bg-green-500 text-white":"bg-gray-100 text-gray-600"}`}>{copied?"✓ 복사됨":"복사"}</button>
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">✕</button>
           </div>
         </div>
 
-        {/* 자막 자동 추출 버튼 */}
-        <div className="px-5 pt-4 pb-2">
-          <button onClick={extractTranscript} disabled={loading}
-            className="w-full py-2.5 rounded-2xl text-sm font-black text-gray-900 disabled:opacity-40 flex items-center justify-center gap-2"
-            style={{background:"#00ff97"}}>
-            {loading
-              ? <><div className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-gray-700 animate-spin"/><span>자막 추출 중...</span></>
-              : <span>📄 YouTube 자동자막 가져오기</span>
-            }
-          </button>
-          {error&&<p className="text-xs text-red-500 mt-2 text-center">{error}</p>}
-          <p className="text-xs text-gray-400 mt-1.5 text-center">자동자막이 있는 영상만 가능해요</p>
+        <div className="px-5 pt-4 pb-2 space-y-2">
+          {/* Gemini 버튼들 */}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { mode:"transcript", label:"📄 대본 추출", desc:"나레이션 전체" },
+              { mode:"hook",       label:"🪝 훅 분석",   desc:"첫 3초 패턴" },
+              { mode:"structure",  label:"🏗 구조 분석", desc:"대본 구조" },
+            ].map(btn=>(
+              <button key={btn.mode} onClick={()=>runGemini(btn.mode)} disabled={loading}
+                className="py-2 rounded-2xl text-xs font-black disabled:opacity-40 flex flex-col items-center gap-0.5 transition-all"
+                style={{background: mode===btn.mode&&!loading&&text?"#111":"#f3f4f6", color: mode===btn.mode&&!loading&&text?"white":"#374151"}}>
+                {loading && mode===btn.mode
+                  ? <div className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-gray-700 animate-spin"/>
+                  : <span>{btn.label}</span>
+                }
+                <span className="opacity-60 font-normal" style={{fontSize:"10px"}}>{btn.desc}</span>
+              </button>
+            ))}
+          </div>
+          {error&&<p className="text-xs text-red-500 text-center">{error}</p>}
+          {!geminiKey&&<p className="text-xs text-amber-600 text-center bg-amber-50 rounded-xl px-3 py-2">⚙️ 설정에서 Gemini API 키를 등록해주세요</p>}
         </div>
 
         <textarea value={text} onChange={e=>setText(e.target.value)}
-          placeholder="자막을 자동으로 가져오거나 직접 입력하세요..."
-          className="flex-1 p-5 text-sm text-gray-800 leading-relaxed outline-none resize-none font-mono placeholder-gray-300"/>
+          placeholder="Gemini 버튼을 눌러 자동으로 가져오거나 직접 입력하세요..."
+          className="flex-1 p-5 text-sm text-gray-800 leading-relaxed outline-none resize-none placeholder-gray-300"/>
         <div className="p-4 border-t border-gray-100">
           <button onClick={()=>{onSave(item.id,text);onClose();}} className="w-full py-2.5 text-gray-900 text-sm font-black rounded-2xl" style={{background:"#00ff97"}}>저장</button>
         </div>
