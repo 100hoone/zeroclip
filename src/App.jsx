@@ -376,7 +376,8 @@ const ScriptModal = ({ item, onClose, onSave, geminiKey }) => {
 
         <textarea value={text} onChange={e=>setText(e.target.value)}
           placeholder="Gemini 버튼을 눌러 자동으로 가져오거나 직접 입력하세요..."
-          className="flex-1 p-5 text-sm text-gray-800 leading-relaxed outline-none resize-none placeholder-gray-300"/>
+          className="flex-1 p-5 text-sm text-gray-800 leading-relaxed outline-none resize-none placeholder-gray-300"
+          style={{minHeight:"300px"}}/>
         <div className="p-4 border-t border-gray-100">
           <button onClick={()=>{onSave(item.id,text);onClose();}} className="w-full py-2.5 text-gray-900 text-sm font-black rounded-2xl" style={{background:"#00ff97"}}>저장</button>
         </div>
