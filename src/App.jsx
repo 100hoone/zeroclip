@@ -758,7 +758,12 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel }) => {
                 ✅ {preview.filter(c=>c._selected).length}개 갤러리에 추가
               </button>
               {onRegisterChannel&&preview.length>0&&(
-                <button onClick={()=>{addSelected();onRegisterChannel({name:preview[0].channel,category:selectedCat,url:channelUrl});}}
+                <button onClick={()=>{
+                  addSelected();
+                  // channelId 추출 - preview 카드의 URL에서 또는 channelUrl에서
+                  const extractedId = channelUrl.match(/channel\/(UC[\w-]+)/)?.[1] || channelUrl.match(/(UC[\w-]{22})/)?.[1] || "";
+                  onRegisterChannel({id: extractedId, name:preview[0].channel, category:selectedCat, url:channelUrl});
+                }}
                   disabled={preview.filter(c=>c._selected).length===0}
                   className="w-full py-2.5 rounded-2xl text-sm font-bold text-blue-600 border-2 border-blue-200 hover:bg-blue-50 disabled:opacity-40">
                   🔄 추가 + 레퍼런스 채널 등록 (이후 자동 업데이트)
@@ -2290,30 +2295,51 @@ export default function ZeroClip() {
   const autoSync = async () => {
     if (!apiKey||!apiKey.startsWith("AIza")||refChannels.length===0) return;
     setAutoSyncing(true);
+    let newCount = 0;
     try {
       for (const ch of refChannels) {
-        const srRes  = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${ch.id}&type=video&order=date&maxResults=10&key=${apiKey}`);
+        // channelId 확보 - 없으면 URL에서 추출하거나 채널명으로 검색
+        let channelId = ch.id;
+        if (!channelId && ch.url) {
+          channelId = ch.url.match(/channel\/(UC[\w-]+)/)?.[1] || ch.url.match(/(UC[\w-]{22})/)?.[1];
+        }
+        if (!channelId && ch.url) {
+          const handleMatch = ch.url.match(/@([\w.-]+)/);
+          if (handleMatch) {
+            const searchRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${handleMatch[1]}&key=${apiKey}`);
+            const searchData = await searchRes.json();
+            channelId = searchData.items?.[0]?.id?.channelId;
+            // id 업데이트
+            if (channelId) saveRefChannels(refChannels.map(r=>r.url===ch.url?{...r,id:channelId}:r));
+          }
+        }
+        if (!channelId) continue;
+
+        const srRes  = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&maxResults=10&key=${apiKey}`);
         const srData = await srRes.json();
         if (srData.error||!srData.items?.length) continue;
         const videoIds = srData.items.map(i=>i.id.videoId).filter(Boolean).join(",");
         const vidRes   = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoIds}&key=${apiKey}`);
         const vidData  = await vidRes.json();
         const existing = JSON.parse(localStorage.getItem("zc_cards")||"[]");
-        const existingIds = new Set(existing.map(c=>c.url?.split("v=")?.[1]));
-        const newCards = (vidData.items||[]).filter(v=>!existingIds.has(v.id)).map(v=>{
+        const existingUrls = new Set(existing.map(c=>c.url?.split("v=")?.[1]||c.url?.split("shorts/")?.[1]));
+        const newCards = (vidData.items||[]).filter(v=>!existingUrls.has(v.id)).map(v=>{
           const views    = parseInt(v.statistics?.viewCount||0);
           const viewsStr = views>=10000000?`${(views/10000000).toFixed(1)}천만`:views>=1000000?`${(views/1000000).toFixed(0)}백만`:views>=10000?`${Math.round(views/10000)}만`:`${views}`;
           const daysDiff = Math.floor((Date.now()-new Date(v.snippet.publishedAt))/86400000);
           const daysAgo  = daysDiff===0?"오늘":daysDiff<=3?`${daysDiff}일 전`:daysDiff<=14?"1주일 전":"1개월 전";
-          return { id:Date.now()+Math.random(), title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:"×?", mainCat:ch.category||"전체", subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"" };
+          return { id:Date.now()+Math.random(), title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:"×?", mainCat:ch.category||"전체", subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, channelUrl:ch.url||"", thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"" };
         });
         if (newCards.length>0) {
+          newCount += newCards.length;
           setCards(p=>{ const n=[...newCards,...p]; localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
         }
       }
       const now = new Date().toISOString();
       setLastSynced(now); localStorage.setItem("zc_last_synced", now);
-    } catch(e) { console.error("autoSync error",e); }
+      if (newCount > 0) alert(`✅ ${newCount}개 새 영상을 추가했어요!`);
+      else alert("새 영상이 없어요. 이미 최신 상태예요!");
+    } catch(e) { console.error("autoSync error",e); alert("업데이트 중 오류가 발생했어요."); }
     setAutoSyncing(false);
   };
 
@@ -2427,14 +2453,15 @@ export default function ZeroClip() {
           {/* 대분류/소분류/기간 필터 (갤러리만) - 드롭다운 스타일 */}
           {tab==="gallery"&&(
             <>
-              <div className="flex gap-2 py-2 border-t border-gray-100 flex-wrap">
+              <div className="flex gap-2 py-2 border-t border-gray-100 flex-wrap items-center">
                 <CategoryDropdown mainCat={mainCat} onSelect={handleMainCat} cards={cards}/>
                 {mainCat!=="전체"&&(TAXONOMY[mainCat]?.subs||[]).filter(s=>s!=="전체").length>0&&(
                   <SubCatDropdown mainCat={mainCat} subCat={subCat} onSelect={setSubCat} cards={cards} color={TAXONOMY[mainCat]?.color}/>
                 )}
-                <TagFilter allTags={allTags} activeTag={activeTag} setActiveTag={setActiveTag}/>
                 <PeriodFilter period={period} setPeriod={setPeriod} customFrom={customFrom} setCustomFrom={setCustomFrom} customTo={customTo} setCustomTo={setCustomTo}/>
                 <SortFilter sortBy={sortBy} setSortBy={setSortBy} sortDir={sortDir} setSortDir={setSortDir}/>
+                <div className="flex-1"/>
+                <TagFilter allTags={allTags} activeTag={activeTag} setActiveTag={setActiveTag}/>
               </div>
               <div className="flex items-center gap-2 pb-2">
                 <span className="text-xs text-gray-400">{filtered.length}개 소재</span>
