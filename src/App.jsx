@@ -1591,61 +1591,83 @@ ${refTop5Titles}
               {/* 조회수 분포 그래프 */}
               <div className="bg-white rounded-2xl p-5 shadow-sm">
                 <h3 className="text-sm font-black text-gray-900 mb-3">📈 조회수 분포</h3>
-                {allViews.length>0 ? (()=>{
-                  const max = Math.max(...allViews, 1);
-                  const buckets = 8;
+                {(()=>{
+                  const validViews = allViews.filter(v=>v>0);
+                  if (validViews.length === 0) return <p className="text-xs text-gray-400">조회수 데이터가 없어요</p>;
+                  const max = Math.max(...validViews);
+                  const buckets = 6;
                   const bsize = max / buckets;
                   const counts = Array(buckets).fill(0);
-                  allViews.forEach(v=>{ const i=Math.min(Math.floor(v/bsize), buckets-1); counts[i]++; });
+                  validViews.forEach(v=>{ const i=Math.min(Math.floor(v/bsize), buckets-1); counts[i]++; });
                   const maxCount = Math.max(...counts, 1);
+                  const zeroCount = allViews.length - validViews.length;
                   return (
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
+                      {zeroCount > 0 && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 w-14 flex-shrink-0 text-right">0</span>
+                          <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full bg-gray-300" style={{width:`${(zeroCount/allViews.length)*100}%`}}/>
+                          </div>
+                          <span className="text-xs text-gray-400 w-6 flex-shrink-0">{zeroCount}</span>
+                        </div>
+                      )}
                       {counts.map((cnt, i)=>(
                         <div key={i} className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-12 flex-shrink-0 text-right">{fmtNum(Math.round(bsize*i))}</span>
+                          <span className="text-xs text-gray-400 w-14 flex-shrink-0 text-right">{fmtNum(Math.round(bsize*i))}</span>
                           <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full transition-all" style={{width:`${(cnt/maxCount)*100}%`, backgroundColor:"#3B82F6", opacity: 0.4+((cnt/maxCount)*0.6)}}/>
+                            <div className="h-full rounded-full transition-all" style={{width:`${(cnt/maxCount)*100}%`, backgroundColor:"#3B82F6", opacity:0.4+((cnt/maxCount)*0.6)}}/>
                           </div>
                           <span className="text-xs text-gray-500 w-6 flex-shrink-0">{cnt}</span>
                         </div>
                       ))}
-                      <p className="text-xs text-gray-400 mt-2 text-center">전체 {allViews.length}개 영상 기준</p>
+                      <p className="text-xs text-gray-400 mt-1 text-center">내 채널 {allViews.length}개 영상 기준</p>
                     </div>
                   );
-                })() : <p className="text-xs text-gray-400">데이터 없음</p>}
+                })()}
               </div>
 
               {/* 제목 키워드 빈도 */}
               <div className="bg-white rounded-2xl p-5 shadow-sm">
                 <h3 className="text-sm font-black text-gray-900 mb-3">🔑 레퍼런스 키워드 TOP10</h3>
                 {(()=>{
-                  const stopWords = new Set(['이','그','저','것','수','등','및','또','더','때','에서','으로','에게','부터','까지','이다','있다','하다','되다','않다','없다','같다','보다','대해','대한','위해','위한','통해','관한','한다','된다','있는','없는','하는','되는','않는','같은','보는','다는','는데','에는','으로는','이런','저런','어떤','무슨','얼마','왜','어디','누가','몇','아주','매우','너무','정말','진짜','완전','계속','다시','이미','아직','가장','제일','모든','각','여러','많은','적은','큰','작은','좋은','나쁜','새로운','오래된','빠른','느린']);
+                  const stopWords = new Set(['이','그','저','것','수','등','및','또','더','때','에서','으로','에게','부터','까지','이다','있다','하다','되다','않다','없다','같다','보다','대해','대한','위해','위한','통해','관한','한다','된다','있는','없는','하는','되는','않는','같은','보는','다는','는데','에는','으로는','이런','저런','어떤','무슨','얼마','왜','어디','누가','몇','아주','매우','너무','정말','진짜','완전','계속','다시','이미','아직','가장','제일','모든','각','여러','많은','적은','큰','작은','좋은','나쁜','새로운','오래된','빠른','느린','하고','하면','하지','하는데','그리고','하지만','그래서','그런데','때문에','그것','이것','저것','했던','있던','없던','됐던','않았','시즌','season','ep','dp','part','vol','편','화','회','번','번째','the','and','in','of','is','to','a','for','dp1','dp2','dp3','ep1','ep2','s1','s2']);
                   const wordCount = {};
-                  refTop5.forEach(v=>{
-                    const words = v.title.replace(/[^\uAC00-\uD7A3a-zA-Z0-9\s]/g,' ').split(/\s+/).filter(w=>w.length>=2 && !stopWords.has(w));
+                  const allRefCards = [...filteredRef].slice(0, 30);
+                  allRefCards.forEach(v=>{
+                    const words = v.title
+                      .replace(/[^\uAC00-\uD7A3a-zA-Z0-9\s]/g, ' ')
+                      .split(/\s+/)
+                      .filter(w => {
+                        if (w.length < 2) return false;
+                        if (/^[a-zA-Z0-9]+$/.test(w) && w.length <= 3) return false; // 짧은 영숫자 제거
+                        if (stopWords.has(w.toLowerCase())) return false;
+                        if (/^\d+$/.test(w)) return false; // 숫자만 제거
+                        return true;
+                      });
                     words.forEach(w=>{ wordCount[w]=(wordCount[w]||0)+1; });
                   });
-                  // 전체 레퍼런스에서도
-                  filteredRef.slice(0,20).forEach(v=>{
-                    const words = v.title.replace(/[^\uAC00-\uD7A3a-zA-Z0-9\s]/g,' ').split(/\s+/).filter(w=>w.length>=2 && !stopWords.has(w));
-                    words.forEach(w=>{ wordCount[w]=(wordCount[w]||0)+0.3; });
-                  });
-                  const top = Object.entries(wordCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
-                  const maxW = top[0]?.[1]||1;
-                  return top.length>0 ? (
+                  const top = Object.entries(wordCount).filter(([,cnt])=>cnt>=2).sort((a,b)=>b[1]-a[1]).slice(0,10);
+                  if (top.length === 0) {
+                    const allTop = Object.entries(wordCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+                    if (allTop.length === 0) return <p className="text-xs text-gray-400">레퍼런스 카드를 더 수집해주세요</p>;
+                  }
+                  const display = top.length > 0 ? top : Object.entries(wordCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+                  const maxW = display[0]?.[1]||1;
+                  return (
                     <div className="flex flex-wrap gap-1.5">
-                      {top.map(([word, cnt])=>{
-                        const size = 10 + Math.round((cnt/maxW)*4);
-                        const opacity = 0.5 + (cnt/maxW)*0.5;
+                      {display.map(([word, cnt])=>{
+                        const ratio = cnt/maxW;
+                        const size = 10 + Math.round(ratio*5);
                         return (
-                          <span key={word} className="px-2 py-0.5 rounded-full font-bold text-white"
-                            style={{backgroundColor:`rgba(99,102,241,${opacity})`, fontSize:`${size}px`}}>
-                            {word}
+                          <span key={word} className="px-2.5 py-1 rounded-full font-bold text-white"
+                            style={{backgroundColor:`rgba(99,102,241,${0.4+ratio*0.6})`, fontSize:`${size}px`}}>
+                            {word} <span style={{opacity:0.7, fontSize:'9px'}}>{cnt}</span>
                           </span>
                         );
                       })}
                     </div>
-                  ) : <p className="text-xs text-gray-400">레퍼런스 카드를 먼저 수집해주세요</p>;
+                  );
                 })()}
               </div>
             </div>
