@@ -1,8 +1,11 @@
 const MODELS = [
   'gemini-2.5-flash',
+  'gemini-2.5-flash-lite-preview-06-17',
   'gemini-2.0-flash-lite',
+  'gemini-2.0-flash',
   'gemini-1.5-flash',
   'gemini-1.5-flash-8b',
+  'gemini-1.5-pro',
 ];
 
 export default async function handler(req, res) {
@@ -31,7 +34,6 @@ export default async function handler(req, res) {
     generationConfig: { temperature: 0.3, maxOutputTokens: 4096 }
   });
 
-  // 모델 순서대로 시도
   for (const model of MODELS) {
     try {
       const geminiRes = await fetch(
@@ -40,21 +42,20 @@ export default async function handler(req, res) {
       );
       const data = await geminiRes.json();
 
-      // 사용 불가 모델이면 다음으로
       if (data.error?.code === 404 || data.error?.status === 'NOT_FOUND') continue;
-      // 과부하면 다음으로
-      if (data.error?.code === 503 || data.error?.status === 'UNAVAILABLE') continue;
-      // 다른 에러면 반환
-      if (data.error) return res.status(400).json({ error: data.error.message });
+      if (data.error?.code === 503 || data.error?.status === 'UNAVAILABLE') { console.log(`${model} overloaded, trying next...`); continue; }
+      if (data.error?.code === 429 || data.error?.status === 'RESOURCE_EXHAUSTED') { console.log(`${model} quota exceeded, trying next...`); continue; }
+      if (data.error) return res.status(400).json({ error: `${data.error.message} (${model})` });
 
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      if (!text) return res.status(500).json({ error: '응답이 비어있어요' });
+      if (!text) { console.log(`${model} empty response, trying next...`); continue; }
 
       return res.status(200).json({ result: text, model });
     } catch(e) {
+      console.log(`${model} error:`, e.message);
       continue;
     }
   }
 
-  return res.status(503).json({ error: '모든 Gemini 모델이 현재 과부하 상태예요. 잠시 후 다시 시도해주세요.' });
+  return res.status(503).json({ error: 'Gemini가 현재 바빠요. 1~2분 후 다시 시도해주세요.' });
 }

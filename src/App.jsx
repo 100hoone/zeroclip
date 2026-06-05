@@ -1622,7 +1622,7 @@ ${refTop5Titles}
                 });
                 const display = Object.entries(wordCount).filter(([,cnt])=>cnt>=2).sort((a,b)=>b[1]-a[1]).slice(0,15);
                 const fallback = Object.entries(wordCount).sort((a,b)=>b[1]-a[1]).slice(0,15);
-                const final = display.length >= 5 ? display : fallback;
+                const final = display.length >= 3 ? display : fallback;
                 if (final.length === 0) return <p className="text-xs text-gray-400">레퍼런스 카드를 더 수집해주세요 (최소 10개 이상 권장)</p>;
                 const maxW = final[0]?.[1]||1;
                 return (
