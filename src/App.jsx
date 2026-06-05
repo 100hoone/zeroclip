@@ -1046,7 +1046,15 @@ const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatCha
   const [bulkMainCat, setBulkMainCat]   = useState("전체");
   const [bulkSubCats, setBulkSubCats]   = useState([]);
   const [chSearch, setChSearch]         = useState("");
-  const [filterCat, setFilterCat]       = useState("전체"); // 채널 목록 카테고리 필터
+  const [filterCat, setFilterCat]       = useState("전체");
+
+  // 채널 바뀔 때 상태 리셋
+  const selectChannel = (name) => {
+    setSelectedCh(name);
+    setEditingCh(null);
+    setBulkMainCat("전체");
+    setBulkSubCats([]);
+  }; // 채널 목록 카테고리 필터
 
   const channels = useMemo(()=>{
     const map = {};
@@ -1091,7 +1099,7 @@ const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatCha
     return (
       <div className="max-w-7xl mx-auto px-4 py-5">
         <div className="flex items-center gap-3 mb-5 flex-wrap">
-          <button onClick={()=>{setSelectedCh(null);setEditingCh(null);}} className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 text-sm">←</button>
+          <button onClick={()=>{setSelectedCh(null);setEditingCh(null);setBulkMainCat("전체");setBulkSubCats([]);}} className="w-8 h-8 flex items-center justify-center rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 text-sm">←</button>
           {ch?.thumbnail&&<img src={ch.thumbnail} className="w-10 h-10 rounded-full object-cover flex-shrink-0"/>}
           <div className="flex-1 min-w-0">
             <h2 className="text-base font-black text-gray-900 truncate">{selectedCh}</h2>
@@ -1142,9 +1150,13 @@ const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatCha
               </div>
             )}
             <div className="flex gap-2">
-              <button onClick={()=>{onBulkCatChange(selectedCh,bulkMainCat,bulkSubCats);setEditingCh(null);}}
+              <button onClick={()=>{
+                  if (bulkMainCat==="전체") { alert("대분류를 먼저 선택해주세요"); return; }
+                  onBulkCatChange(selectedCh, bulkMainCat, bulkSubCats);
+                  setEditingCh(null);
+                }}
                 className="px-4 py-2 rounded-xl text-xs font-black text-gray-900" style={{background:"#00ff97"}}>
-                ✅ {selectedCards.length}개 카드에 적용
+                ✅ "{selectedCh}" {selectedCards.length}개 카드에만 적용
               </button>
               <button onClick={()=>setEditingCh(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-gray-500 bg-gray-100">취소</button>
             </div>
@@ -1247,7 +1259,7 @@ const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatCha
             const color = TAXONOMY[ch.mainCat]?.color||"#888";
             return (
               <div key={ch.name} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
-                onClick={()=>setSelectedCh(ch.name)}>
+                onClick={()=>selectChannel(ch.name)}>
                 <div className="relative h-20 bg-gray-100 overflow-hidden">
                   {ch.thumbnail&&<img src={ch.thumbnail} className="w-full h-full object-cover opacity-50"/>}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"/>
