@@ -1692,7 +1692,7 @@ const ANALYSIS_MODES = [
   { value:"topic",  label:"🔥 소재 트렌드 분석", desc:"왜 이 소재가 떡상했는지 분석" },
   { value:"custom", label:"✏️ 직접 질문",        desc:"원하는 걸 직접 물어보기" },
 ];
-const AiAnalysisModal = ({ items, onClose }) => {
+const AiAnalysisModal = ({ items, onClose, geminiKey }) => {
   const [mode, setMode]     = useState("hook");
   const [customQ, setCustomQ] = useState("");
   const [result, setResult] = useState("");
@@ -1701,6 +1701,7 @@ const AiAnalysisModal = ({ items, onClose }) => {
 
   const analyze = async () => {
     if (mode==="custom"&&!customQ.trim()) return;
+    if (!geminiKey||!geminiKey.startsWith("AIza")) { setResult("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return; }
     setLoading(true); setResult("");
     try {
       const cards = items.map((item,i)=>{
@@ -1715,15 +1716,13 @@ const AiAnalysisModal = ({ items, onClose }) => {
         topic:`다음 유튜브 쇼츠 영상들이 왜 떡상했는지 소재 측면에서 분석해주세요.\n1. 공통 소재 특성\n2. 타겟 심리 분석\n3. 트렌드와의 연결고리\n4. 유사 소재 5개 제안\n\n${cards}`,
         custom:`${customQ}\n\n영상 데이터:\n\n${cards}`,
       };
-      const res = await fetch("https://api.anthropic.com/v1/messages",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1500,
-          system:"당신은 유튜브 쇼츠 콘텐츠 전략가입니다. ZERO CLIP 소재 리서치 툴에서 분석 요청이 들어왔습니다. 한국어로 실용적이고 구체적인 인사이트를 제공하세요.",
-          messages:[{role:"user",content:prompts[mode]}] }),
+      const res = await fetch("/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: geminiKey, prompt: prompts[mode] })
       });
       const data = await res.json();
-      setResult(data.content?.map(b=>b.text||"").join("")||"응답을 받지 못했어요.");
+      setResult(data.result || data.error || "응답을 받지 못했어요.");
     } catch(e) { setResult("❌ 오류가 발생했어요. 다시 시도해주세요."); }
     setLoading(false);
   };
@@ -2490,7 +2489,7 @@ export default function ZeroClip() {
       {tagTarget        &&<TagModal          item={tagTarget}     onClose={()=>setTagTarget(null)}     onSave={saveTags} allTags={allTags}/>}
       {myViewsTarget    &&<MyViewsModal      item={myViewsTarget} onClose={()=>setMyViewsTarget(null)} onSave={saveMyViews}/>}
       {catEditTarget    &&<CatEditModal      item={catEditTarget} onClose={()=>setCatEditTarget(null)} onSave={saveCat}/>}
-      {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)}/>}
+      {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)} geminiKey={geminiKey}/>}
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
       {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub}/>}
       {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)} apiKey={apiKey}/>}
