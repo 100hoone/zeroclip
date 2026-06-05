@@ -1284,36 +1284,30 @@ const MyChannelTab = ({ refCards, apiKey, geminiKey }) => {
     try { return JSON.parse(localStorage.getItem("my_channels")||"[]"); } catch { return []; }
   });
 
-  // 필터 상태
   const [selectedChId, setSelectedChId] = useState("all");
-  const [dateFrom, setDateFrom]         = useState(()=>{ const d=new Date(); d.setMonth(d.getMonth()-1); return d.toISOString().slice(0,10); });
-  const [dateTo, setDateTo]             = useState(()=>new Date().toISOString().slice(0,10));
+  const [dateFrom, setDateFrom] = useState(()=>{ const d=new Date(); d.setMonth(d.getMonth()-1); return d.toISOString().slice(0,10); });
+  const [dateTo, setDateTo]     = useState(()=>new Date().toISOString().slice(0,10));
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addUrl, setAddUrl]     = useState("");
+  const [addCat, setAddCat]     = useState("전체");
+  const [adding, setAdding]     = useState(false);
+  const [addError, setAddError] = useState("");
+  const [loadingId, setLoadingId] = useState(null);
+  const [activeData, setActiveData] = useState(null);
+  const [searchError, setSearchError] = useState("");
+  const [geminiDiag, setGeminiDiag] = useState("");
+  const [diagLoading, setDiagLoading] = useState(false);
 
-  // 채널 등록 상태
-  const [showAddForm, setShowAddForm]   = useState(false);
-  const [addUrl, setAddUrl]             = useState("");
-  const [addCat, setAddCat]             = useState("전체");
-  const [adding, setAdding]             = useState(false);
-  const [addError, setAddError]         = useState("");
-
-  // 분석 결과
-  const [analysisData, setAnalysisData] = useState({});
-  const [loadingId, setLoadingId]       = useState(null);
-  const [activeData, setActiveData]     = useState(null);
-  const [activeChInfo, setActiveChInfo] = useState(null);
-  const [searchError, setSearchError]   = useState("");
-
-  const mainCats = ["전체", ...Object.keys(TAXONOMY).filter(k=>k!=="전체")];
-
+  const mainCats = Object.keys(TAXONOMY);
   const saveChannels = list => { setMyChannels(list); localStorage.setItem("my_channels", JSON.stringify(list)); };
 
   const extractChannelId = async (url) => {
     const cleanUrl = url.split("?")[0].trim();
-    const idMatch  = cleanUrl.match(/channel\/(UC[\w-]+)/); if (idMatch) return idMatch[1];
-    const directId = cleanUrl.match(/(UC[\w-]{22})/);       if (directId) return directId[1];
+    const idMatch = cleanUrl.match(/channel\/(UC[\w-]+)/); if (idMatch) return idMatch[1];
+    const directId = cleanUrl.match(/(UC[\w-]{22})/); if (directId) return directId[1];
     const handleMatch = cleanUrl.match(/@([\w.-]+)/);
     if (handleMatch) {
-      const res  = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${handleMatch[1]}&key=${apiKey}`);
+      const res = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${handleMatch[1]}&key=${apiKey}`);
       const data = await res.json();
       return data.items?.[0]?.id?.channelId||null;
     }
@@ -1328,80 +1322,93 @@ const MyChannelTab = ({ refCards, apiKey, geminiKey }) => {
       const channelId = await extractChannelId(addUrl);
       if (!channelId) { setAddError("채널을 찾을 수 없어요."); setAdding(false); return; }
       if (myChannels.find(c=>c.id===channelId)) { setAddError("이미 등록된 채널이에요."); setAdding(false); return; }
-      const chRes  = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&key=${apiKey}`);
+      const chRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&id=${channelId}&key=${apiKey}`);
       const chData = await chRes.json();
       const chInfo = chData.items?.[0];
       if (!chInfo) { setAddError("채널 정보를 가져올 수 없어요."); setAdding(false); return; }
-      saveChannels([...myChannels, {
-        id: channelId, name: chInfo.snippet.title,
-        thumbnail: chInfo.snippet.thumbnails?.medium?.url||"",
-        subscribers: parseInt(chInfo.statistics?.subscriberCount||0),
-        totalVideos: parseInt(chInfo.statistics?.videoCount||0),
-        url: addUrl, category: addCat, addedAt: Date.now(),
-      }]);
+      saveChannels([...myChannels, { id:channelId, name:chInfo.snippet.title, thumbnail:chInfo.snippet.thumbnails?.medium?.url||"", subscribers:parseInt(chInfo.statistics?.subscriberCount||0), url:addUrl, category:addCat, addedAt:Date.now() }]);
       setAddUrl(""); setAddCat("전체"); setShowAddForm(false);
     } catch(e) { setAddError("등록 중 오류가 발생했어요."); }
     setAdding(false);
   };
 
-  const removeChannel = id => {
-    saveChannels(myChannels.filter(c=>c.id!==id));
-    if (selectedChId===id) setSelectedChId("all");
-    const next={...analysisData}; delete next[id]; setAnalysisData(next);
-    if (activeChInfo?.id===id) { setActiveData(null); setActiveChInfo(null); }
-  };
+  const removeChannel = id => { saveChannels(myChannels.filter(c=>c.id!==id)); if(selectedChId===id) setSelectedChId("all"); };
 
-  // 검색/분석 실행
   const runSearch = async () => {
     if (!apiKey||!apiKey.startsWith("AIza")) { setSearchError("API 키를 ⚙️ 설정에서 먼저 등록해주세요"); return; }
-    setSearchError(""); setActiveData(null); setActiveChInfo(null);
-
-    const targetChannels = selectedChId==="all" ? myChannels : myChannels.filter(c=>c.id===selectedChId);
-    if (targetChannels.length===0) { setSearchError("등록된 채널이 없어요. 먼저 채널을 추가해주세요."); return; }
-
+    setSearchError(""); setActiveData(null); setGeminiDiag("");
+    const targets = selectedChId==="all" ? myChannels : myChannels.filter(c=>c.id===selectedChId);
+    if (!targets.length) { setSearchError("채널을 먼저 등록해주세요"); return; }
     const fromTs = dateFrom ? new Date(dateFrom).getTime() : 0;
     const toTs   = dateTo   ? new Date(dateTo+"T23:59:59").getTime() : Date.now();
-
     setLoadingId("search");
     try {
       const results = [];
-      for (const ch of targetChannels) {
+      for (const ch of targets) {
         const srRes  = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${ch.id}&type=video&order=date&maxResults=50&key=${apiKey}`);
         const srData = await srRes.json();
-        if (srData.error) continue;
-        const videoIds = srData.items?.map(i=>i.id.videoId).filter(Boolean).join(",");
-        if (!videoIds) continue;
+        if (srData.error||!srData.items?.length) continue;
+        const videoIds = srData.items.map(i=>i.id.videoId).filter(Boolean).join(",");
         const vidRes  = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoIds}&key=${apiKey}`);
         const vidData = await vidRes.json();
-        const videos  = (vidData.items||[]).filter(v=>{
-          const ts = new Date(v.snippet.publishedAt).getTime();
-          return ts>=fromTs && ts<=toTs;
-        });
-        if (videos.length===0) continue;
+        const videos  = (vidData.items||[]).filter(v=>{ const ts=new Date(v.snippet.publishedAt).getTime(); return ts>=fromTs&&ts<=toTs; });
+        if (!videos.length) continue;
         const avgViews = videos.reduce((s,v)=>s+parseInt(v.statistics?.viewCount||0),0)/videos.length;
-        // 해당 채널 카테고리 기준 레퍼런스
         const filteredRef = ch.category==="전체" ? refCards : refCards.filter(c=>c.mainCat===ch.category);
         const refAvgMulti = filteredRef.length ? filteredRef.reduce((s,c)=>s+parseFloat(c.multiplier?.replace("×","")||0),0)/filteredRef.length : 0;
         const top5 = [...videos].sort((a,b)=>parseInt(b.statistics?.viewCount||0)-parseInt(a.statistics?.viewCount||0)).slice(0,5)
           .map(v=>({ title:v.snippet.title, views:parseInt(v.statistics?.viewCount||0), thumbnail:v.snippet.thumbnails?.medium?.url||"", url:`https://youtube.com/watch?v=${v.id}`, publishedAt:v.snippet.publishedAt }));
-        results.push({ ch, avgViews:Math.round(avgViews), videoCount:videos.length, refAvgMulti:refAvgMulti.toFixed(1), refCount:filteredRef.length, goalViews:Math.round(avgViews*20), top5 });
+        // 조회수 분포
+        const allViews = videos.map(v=>parseInt(v.statistics?.viewCount||0)).sort((a,b)=>a-b);
+        results.push({ ch, avgViews:Math.round(avgViews), videoCount:videos.length, refAvgMulti:refAvgMulti.toFixed(1), refCount:filteredRef.length, goalViews:Math.round(avgViews*20), top5, allViews, filteredRef });
       }
       setActiveData(results);
-      setActiveChInfo(selectedChId==="all" ? null : myChannels.find(c=>c.id===selectedChId));
     } catch(e) { setSearchError("검색 중 오류가 발생했어요."); }
     setLoadingId(null);
   };
 
-  const fmtNum  = n => n>=10000000?`${(n/10000000).toFixed(1)}천만`:n>=1000000?`${(n/1000000).toFixed(0)}백만`:n>=10000?`${Math.round(n/10000)}만`:n>=1000?`${(n/1000).toFixed(1)}천`:`${n}`;
+  const runGeminiDiag = async (result) => {
+    if (!geminiKey||!geminiKey.startsWith("AIza")) { setGeminiDiag("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return; }
+    setDiagLoading(true); setGeminiDiag("");
+    const myTop5Titles  = result.top5.map((v,i)=>`${i+1}. "${v.title}" (${fmtNum(v.views)}회)`).join("\n");
+    const refTop5Titles = [...result.filteredRef].sort((a,b)=>parseFloat(b.multiplier?.replace("×","")||0)-parseFloat(a.multiplier?.replace("×","")||0)).slice(0,5)
+      .map((v,i)=>`${i+1}. "${v.title}" (×${v.multiplier?.replace("×","")||"?"}, ${v.views}회)`).join("\n");
+    const prompt = `당신은 유튜브 쇼츠 전략가입니다. 아래 데이터를 분석해서 실용적인 피드백을 주세요.
+
+【내 채널: ${result.ch.name}】
+- 기간 내 평균 조회수: ${fmtNum(result.avgViews)}
+- 분석 영상 수: ${result.videoCount}개
+- 인기 영상 TOP5 제목:
+${myTop5Titles}
+
+【레퍼런스 채널 (${result.ch.category} 카테고리) TOP5】
+- 레퍼런스 평균 배수: ×${result.refAvgMulti}
+- 레퍼런스 인기 영상:
+${refTop5Titles}
+
+다음 형식으로 분석해주세요:
+1. 📌 핵심 차이점 (제목 패턴, 소재 선택 등)
+2. ⚠️ 내 채널의 약점 2~3가지
+3. ✅ 레퍼런스에서 훔쳐야 할 패턴 3가지
+4. 💡 당장 써먹을 수 있는 제목 공식 3개 예시`;
+
+    try {
+      const res = await fetch("/api/gemini", { method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ key:geminiKey, prompt }) });
+      const data = await res.json();
+      setGeminiDiag(data.result || data.error || "응답 없음");
+    } catch(e) { setGeminiDiag("오류: "+e.message); }
+    setDiagLoading(false);
+  };
+
+  const fmtNum = n => n>=10000000?`${(n/10000000).toFixed(1)}천만`:n>=1000000?`${(n/1000000).toFixed(0)}백만`:n>=10000?`${Math.round(n/10000)}만`:n>=1000?`${(n/1000).toFixed(1)}천`:`${n}`;
   const fmtDate = s => s ? new Date(s).toLocaleDateString("ko",{month:"short",day:"numeric"}) : "";
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-5">
-
-      {/* ── 검색 바 (유튜브 스튜디오 스타일) ── */}
+      {/* 검색 바 */}
       <div className="bg-white rounded-2xl shadow-sm p-4">
         <div className="flex items-center gap-3 flex-wrap">
-          {/* 채널 선택 드롭다운 */}
           <div className="relative min-w-[200px]">
             <select value={selectedChId} onChange={e=>setSelectedChId(e.target.value)}
               className="w-full appearance-none border-2 border-blue-400 rounded-2xl pl-9 pr-8 py-2.5 text-sm font-bold text-gray-800 outline-none bg-white cursor-pointer">
@@ -1414,78 +1421,54 @@ const MyChannelTab = ({ refCards, apiKey, geminiKey }) => {
             </svg>
             <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
           </div>
-
-          {/* 시작일 */}
           <div className="relative">
             <label className="absolute -top-2 left-3 text-xs text-gray-400 bg-white px-1">시작일</label>
             <div className="flex items-center gap-2 border border-gray-200 rounded-2xl px-3 py-2.5">
               <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)}
-                className="text-sm font-medium text-gray-700 outline-none bg-transparent w-32"/>
+              <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)} className="text-sm font-medium text-gray-700 outline-none bg-transparent w-32"/>
             </div>
           </div>
-
           <span className="text-gray-400 font-bold">-</span>
-
-          {/* 종료일 */}
           <div className="relative">
             <label className="absolute -top-2 left-3 text-xs text-gray-400 bg-white px-1">종료일</label>
             <div className="flex items-center gap-2 border border-gray-200 rounded-2xl px-3 py-2.5">
               <svg className="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)}
-                className="text-sm font-medium text-gray-700 outline-none bg-transparent w-32"/>
+              <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)} className="text-sm font-medium text-gray-700 outline-none bg-transparent w-32"/>
             </div>
           </div>
-
-          {/* 검색 버튼 */}
           <button onClick={runSearch} disabled={loadingId==="search"}
             className="flex items-center gap-2 px-5 py-2.5 border-2 border-blue-400 rounded-2xl text-sm font-bold text-blue-500 hover:bg-blue-50 transition-colors disabled:opacity-40">
-            {loadingId==="search"
-              ? <div className="w-4 h-4 rounded-full border-2 border-blue-200 border-t-blue-500 animate-spin"/>
-              : <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>}
+            {loadingId==="search"?<div className="w-4 h-4 rounded-full border-2 border-blue-200 border-t-blue-500 animate-spin"/>:<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>}
             검색
           </button>
-
-          <div className="ml-auto flex items-center gap-2">
-            <button onClick={()=>setShowAddForm(s=>!s)}
-              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-gray-900 text-white hover:bg-gray-700 transition-colors">
-              + 채널 추가
-            </button>
-          </div>
+          <button onClick={()=>setShowAddForm(s=>!s)} className="ml-auto flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-gray-900 text-white hover:bg-gray-700">+ 채널 추가</button>
         </div>
         {searchError&&<p className="text-xs text-red-500 mt-2 ml-1">⚠️ {searchError}</p>}
       </div>
 
-      {/* ── 채널 추가 폼 (토글) ── */}
+      {/* 채널 추가 폼 */}
       {showAddForm&&(
         <div className="bg-white rounded-2xl shadow-sm p-4">
           <h3 className="text-sm font-black text-gray-900 mb-3">채널 등록</h3>
           <div className="flex gap-3 flex-wrap items-end">
             <div className="flex-1 min-w-[200px]">
               <label className="text-xs text-gray-400 block mb-1">채널 URL</label>
-              <input value={addUrl} onChange={e=>setAddUrl(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addChannel()}
-                placeholder="youtube.com/@채널명"
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-gray-400"/>
+              <input value={addUrl} onChange={e=>setAddUrl(e.target.value)} onKeyDown={e=>e.key==="Enter"&&addChannel()} placeholder="youtube.com/@채널명" className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-gray-400"/>
             </div>
             <div className="w-44">
               <label className="text-xs text-gray-400 block mb-1">비교 카테고리</label>
-              <select value={addCat} onChange={e=>setAddCat(e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white">
-                {mainCats.map(c=><option key={c}>{c}</option>)}
+              <select value={addCat} onChange={e=>setAddCat(e.target.value)} className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none bg-white">
+                {mainCats.map(c=><option key={c} value={c}>{TAXONOMY[c]?.emoji} {c}</option>)}
               </select>
             </div>
-            <button onClick={addChannel} disabled={adding||!addUrl.trim()}
-              className="px-4 py-2.5 rounded-xl text-sm font-black text-gray-900 disabled:opacity-40"
-              style={{background:"#00ff97"}}>
-              {adding?"등록 중...":"등록"}
-            </button>
+            <button onClick={addChannel} disabled={adding||!addUrl.trim()} className="px-4 py-2.5 rounded-xl text-sm font-black text-gray-900 disabled:opacity-40" style={{background:"#00ff97"}}>{adding?"등록 중...":"등록"}</button>
             <button onClick={()=>{setShowAddForm(false);setAddError("");}} className="px-4 py-2.5 rounded-xl text-sm font-bold text-gray-500 bg-gray-100">취소</button>
           </div>
           {addError&&<p className="text-xs text-red-500 mt-2">⚠️ {addError}</p>}
         </div>
       )}
 
-      {/* ── 등록된 채널 목록 ── */}
+      {/* 등록된 채널 태그 */}
       {myChannels.length>0&&(
         <div className="flex gap-2 flex-wrap">
           {myChannels.map(ch=>(
@@ -1493,9 +1476,7 @@ const MyChannelTab = ({ refCards, apiKey, geminiKey }) => {
               <img src={ch.thumbnail} className="w-7 h-7 rounded-full object-cover flex-shrink-0"/>
               <div className="min-w-0">
                 <p className="text-xs font-black text-gray-900 truncate max-w-[100px]">{ch.name}</p>
-                {ch.category!=="전체"&&(
-                  <span className="text-xs font-bold" style={{color:TAXONOMY[ch.category]?.color||"#888"}}>{ch.category}</span>
-                )}
+                {ch.category!=="전체"&&<span className="text-xs font-bold" style={{color:TAXONOMY[ch.category]?.color||"#888"}}>{ch.category}</span>}
               </div>
               <button onClick={()=>removeChannel(ch.id)} className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-100 hover:bg-red-100 hover:text-red-500 text-xs flex-shrink-0">✕</button>
             </div>
@@ -1503,7 +1484,7 @@ const MyChannelTab = ({ refCards, apiKey, geminiKey }) => {
         </div>
       )}
 
-      {/* ── 빈 상태 ── */}
+      {/* 빈 상태 */}
       {!activeData&&loadingId!=="search"&&(
         <div className="flex flex-col items-center justify-center py-24 text-gray-300">
           <span className="text-5xl mb-4">🔍</span>
@@ -1512,76 +1493,135 @@ const MyChannelTab = ({ refCards, apiKey, geminiKey }) => {
         </div>
       )}
 
-      {/* ── 로딩 ── */}
+      {/* 로딩 */}
       {loadingId==="search"&&(
-        <div className="flex flex-col items-center justify-center py-24 text-gray-400 gap-3">
+        <div className="flex flex-col items-center justify-center py-24 gap-3">
           <div className="w-10 h-10 rounded-full border-4 border-gray-100 border-t-gray-500 animate-spin"/>
-          <p className="text-sm font-medium">채널 데이터 분석 중...</p>
+          <p className="text-sm font-medium text-gray-400">채널 데이터 분석 중...</p>
         </div>
       )}
 
-      {/* ── 분석 결과 ── */}
-      {activeData&&activeData.length>0&&loadingId!=="search"&&activeData.map(({ch,avgViews,videoCount,refAvgMulti,refCount,goalViews,top5})=>(
-        <div key={ch.id} className="space-y-4">
-          {/* 채널 헤더 */}
-          <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <img src={ch.thumbnail} className="w-12 h-12 rounded-full object-cover"/>
-              <div className="flex-1">
-                <h3 className="text-base font-black text-gray-900">{ch.name}</h3>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <p className="text-xs text-gray-400">구독자 {fmtNum(ch.subscribers)}</p>
-                  {ch.category!=="전체"&&<span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{backgroundColor:(TAXONOMY[ch.category]?.color||"#888")+"20",color:TAXONOMY[ch.category]?.color||"#888"}}>{ch.category} 비교</span>}
-                  <span className="text-xs text-gray-400">{fmtDate(dateFrom)} ~ {fmtDate(dateTo)} · {videoCount}개 영상</span>
+      {/* 분석 결과 */}
+      {activeData&&activeData.map((result, ri)=>{
+        const {ch, avgViews, videoCount, refAvgMulti, refCount, goalViews, top5, allViews, filteredRef} = result;
+        const refTop5 = [...filteredRef].sort((a,b)=>parseFloat(b.multiplier?.replace("×","")||0)-parseFloat(a.multiplier?.replace("×","")||0)).slice(0,5);
+        const maxMyViews  = Math.max(...top5.map(v=>v.views), 1);
+        const maxRefViews = Math.max(...refTop5.map(v=>parseInt(v.views?.replace(/[^0-9]/g,"")||0)), 1);
+        return (
+          <div key={ri} className="space-y-4">
+            {/* 채널 헤더 + 요약 */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <img src={ch.thumbnail} className="w-12 h-12 rounded-full object-cover"/>
+                <div className="flex-1">
+                  <h3 className="text-base font-black text-gray-900">{ch.name}</h3>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    {ch.category!=="전체"&&<span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{backgroundColor:(TAXONOMY[ch.category]?.color||"#888")+"20",color:TAXONOMY[ch.category]?.color||"#888"}}>{ch.category} 비교</span>}
+                    <span className="text-xs text-gray-400">{fmtDate(dateFrom)} ~ {fmtDate(dateTo)} · {videoCount}개 영상</span>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  {label:"기간 내 평균 조회수", value:fmtNum(avgViews), sub:`${videoCount}개 영상 기준`},
+                  {label:"레퍼런스 평균 배수",  value:`×${refAvgMulti}`, sub:`${refCount}개 레퍼런스`},
+                  {label:"×20 목표 조회수",     value:fmtNum(goalViews), sub:"현재 평균 기준"},
+                ].map(s=>(
+                  <div key={s.label} className="bg-gray-50 rounded-2xl p-3 text-center">
+                    <p className="text-xs text-gray-500 font-bold mb-1">{s.label}</p>
+                    <p className="text-xl font-black text-gray-900">{s.value}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{s.sub}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 내 채널 TOP5 vs 레퍼런스 TOP5 나란히 비교 */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <h3 className="text-sm font-black text-gray-900 mb-4">📊 TOP5 제목 패턴 비교</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {/* 내 채널 */}
+                <div>
+                  <p className="text-xs font-black text-gray-500 mb-2">🎬 내 채널 인기 TOP5</p>
+                  <div className="space-y-2">
+                    {top5.map((v,i)=>(
+                      <a key={i} href={v.url} target="_blank" rel="noopener noreferrer" className="block group">
+                        <div className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 transition-colors">
+                          <span className={`text-xs font-black w-4 flex-shrink-0 ${i<3?"text-yellow-500":"text-gray-400"}`}>{i+1}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-gray-900 line-clamp-2 group-hover:text-blue-600">{v.title}</p>
+                            <div className="flex items-center gap-1 mt-1">
+                              <div className="h-1.5 rounded-full bg-blue-400 transition-all" style={{width:`${(v.views/maxMyViews)*100}%`, minWidth:"8px", maxWidth:"100%"}}/>
+                              <span className="text-xs text-gray-400 flex-shrink-0">{fmtNum(v.views)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+                {/* 레퍼런스 */}
+                <div>
+                  <p className="text-xs font-black text-gray-500 mb-2">⭐ 레퍼런스 배수 TOP5</p>
+                  <div className="space-y-2">
+                    {refTop5.length>0 ? refTop5.map((v,i)=>{
+                      const rv = parseInt(v.views?.replace(/[^0-9]/g,"")||0);
+                      return (
+                        <a key={i} href={v.url} target="_blank" rel="noopener noreferrer" className="block group">
+                          <div className="flex items-center gap-2 p-2 rounded-xl hover:bg-gray-50 transition-colors">
+                            <span className={`text-xs font-black w-4 flex-shrink-0 ${i<3?"text-yellow-500":"text-gray-400"}`}>{i+1}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold text-gray-900 line-clamp-2 group-hover:text-blue-600">{v.title}</p>
+                              <div className="flex items-center gap-1 mt-1">
+                                <div className="h-1.5 rounded-full bg-green-400" style={{width:`${Math.min((rv/maxRefViews)*100,100)}%`, minWidth:"8px"}}/>
+                                <span className="text-xs text-gray-400 flex-shrink-0">{v.multiplier} · {v.views}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </a>
+                      );
+                    }) : <p className="text-xs text-gray-400 p-2">레퍼런스 카드를 먼저 수집해주세요</p>}
+                  </div>
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                {label:"기간 내 평균 조회수", value:fmtNum(avgViews),        sub:`${videoCount}개 영상 기준`},
-                {label:"레퍼런스 평균 배수",  value:`×${refAvgMulti}`,        sub:`${refCount}개 레퍼런스`},
-                {label:"×20 목표 조회수",     value:fmtNum(goalViews),        sub:"현재 평균 기준"},
-              ].map(s=>(
-                <div key={s.label} className="bg-gray-50 rounded-2xl p-3 text-center">
-                  <p className="text-xs text-gray-500 font-bold mb-1">{s.label}</p>
-                  <p className="text-xl font-black text-gray-900">{s.value}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{s.sub}</p>
-                </div>
-              ))}
-            </div>
-          </div>
 
-          {/* TOP5 */}
-          <div className="bg-white rounded-2xl p-5 shadow-sm">
-            <h3 className="text-sm font-black text-gray-900 mb-1">🏆 기간 내 인기 영상 TOP 5</h3>
-            <p className="text-xs text-gray-400 mb-3">{fmtDate(dateFrom)} ~ {fmtDate(dateTo)}</p>
-            <div className="space-y-2">
-              {top5.map((v,i)=>(
-                <a key={i} href={v.url} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
-                  <span className={`text-sm font-black w-5 text-center flex-shrink-0 ${i<3?"text-yellow-500":"text-gray-400"}`}>{i+1}</span>
-                  <img src={v.thumbnail} className="w-14 h-9 object-cover rounded-xl flex-shrink-0"/>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-gray-900 truncate group-hover:text-blue-600">{v.title}</p>
-                    <p className="text-xs text-gray-400">{fmtNum(v.views)} 조회 · {fmtDate(v.publishedAt)}</p>
-                  </div>
-                  <svg className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                </a>
-              ))}
+            {/* Gemini AI 진단 */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-black text-gray-900">✨ Gemini AI 채널 진단</h3>
+                <button onClick={()=>runGeminiDiag(result)} disabled={diagLoading}
+                  className="flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-xl disabled:opacity-40"
+                  style={{background:"linear-gradient(135deg,#4285f4,#34a853)",color:"white"}}>
+                  {diagLoading?<><div className="w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin"/><span>분석 중...</span></>:<span>🔍 진단 시작</span>}
+                </button>
+              </div>
+              {!geminiDiag&&!diagLoading&&(
+                <div className="bg-gray-50 rounded-2xl p-4 text-center">
+                  <p className="text-xs text-gray-400">버튼을 눌러 Gemini가 내 채널과 레퍼런스를 비교 분석해드려요</p>
+                  <p className="text-xs text-gray-300 mt-1">제목 패턴 · 약점 · 훔쳐야 할 패턴 · 제목 공식</p>
+                </div>
+              )}
+              {geminiDiag&&(
+                <div className="bg-gray-50 rounded-2xl p-4">
+                  <pre className="text-xs text-gray-800 leading-relaxed whitespace-pre-wrap font-sans">{geminiDiag}</pre>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
 
       {activeData&&activeData.length===0&&loadingId!=="search"&&(
         <div className="flex flex-col items-center justify-center py-16 text-gray-400">
           <span className="text-4xl mb-3">📭</span>
           <p className="font-bold">해당 기간에 업로드된 영상이 없어요</p>
-          <p className="text-sm text-gray-300 mt-1">기간을 넓혀서 다시 검색해보세요</p>
         </div>
       )}
     </div>
   );
+};
+
 };
 
 const ANALYSIS_MODES = [
