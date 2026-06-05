@@ -1297,6 +1297,7 @@ const MyChannelTab = ({ refCards, apiKey, geminiKey }) => {
   const [searchError, setSearchError] = useState("");
   const [geminiDiag, setGeminiDiag] = useState("");
   const [diagLoading, setDiagLoading] = useState(false);
+  const [csvData, setCsvData] = useState(""); // YouTube Studio CSV 데이터
 
   const mainCats = Object.keys(TAXONOMY);
   const saveChannels = list => { setMyChannels(list); localStorage.setItem("my_channels", JSON.stringify(list)); };
@@ -1373,13 +1374,14 @@ const MyChannelTab = ({ refCards, apiKey, geminiKey }) => {
     const myTop5Titles  = result.top5.map((v,i)=>`${i+1}. "${v.title}" (${fmtNum(v.views)}회)`).join("\n");
     const refTop5Titles = [...result.filteredRef].sort((a,b)=>parseFloat(b.multiplier?.replace("×","")||0)-parseFloat(a.multiplier?.replace("×","")||0)).slice(0,5)
       .map((v,i)=>`${i+1}. "${v.title}" (×${v.multiplier?.replace("×","")||"?"}, ${v.views}회)`).join("\n");
+    const csvSection = csvData ? `\n\n【YouTube Studio 실제 데이터 (CSV)】\n${csvData.slice(0,3000)}` : "";
     const prompt = `당신은 유튜브 쇼츠 전략가입니다. 아래 데이터를 분석해서 실용적인 피드백을 주세요.
 
 【내 채널: ${result.ch.name}】
 - 기간 내 평균 조회수: ${fmtNum(result.avgViews)}
 - 분석 영상 수: ${result.videoCount}개
 - 인기 영상 TOP5 제목:
-${myTop5Titles}
+${myTop5Titles}${csvSection}
 
 【레퍼런스 채널 (${result.ch.category} 카테고리) TOP5】
 - 레퍼런스 평균 배수: ×${result.refAvgMulti}
@@ -1586,80 +1588,47 @@ ${refTop5Titles}
               </div>
             </div>
 
-            {/* 조회수 분포 + 제목 키워드 분석 */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* 조회수 분포 그래프 */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <h3 className="text-sm font-black text-gray-900 mb-3">📈 조회수 분포</h3>
-                {(()=>{
-                  const validViews = allViews.filter(v=>v>1000); // 1천 이상만 유의미한 데이터
-                  if (validViews.length === 0) return <p className="text-xs text-gray-400">유의미한 조회수 데이터가 없어요</p>;
-                  const max = Math.max(...validViews);
-                  const buckets = 6;
-                  const bsize = max / buckets;
-                  const counts = Array(buckets).fill(0);
-                  validViews.forEach(v=>{ const i=Math.min(Math.floor(v/bsize), buckets-1); counts[i]++; });
-                  const maxCount = Math.max(...counts, 1);
-                  return (
-                    <div className="space-y-2">
-                      {counts.map((cnt, i)=>(
-                        <div key={i} className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-14 flex-shrink-0 text-right">{fmtNum(Math.round(bsize*i))}</span>
-                          <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full transition-all" style={{width:`${(cnt/maxCount)*100}%`, backgroundColor:"#3B82F6", opacity:0.4+((cnt/maxCount)*0.6)}}/>
-                          </div>
-                          <span className="text-xs text-gray-500 w-6 flex-shrink-0">{cnt}</span>
-                        </div>
-                      ))}
-                      <p className="text-xs text-gray-400 mt-1 text-center">유의미한 조회수 {validViews.length}개 영상 기준</p>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* 제목 키워드 빈도 */}
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <h3 className="text-sm font-black text-gray-900 mb-3">🔑 레퍼런스 키워드 TOP10</h3>
-                {(()=>{
-                  const stopWords = new Set(['이','그','저','것','수','등','및','또','더','때','에서','으로','에게','부터','까지','이다','있다','하다','되다','않다','없다','같다','보다','대해','대한','위해','위한','통해','관한','한다','된다','있는','없는','하는','되는','않는','같은','보는','다는','는데','에는','으로는','이런','저런','어떤','무슨','얼마','왜','어디','누가','몇','아주','매우','너무','정말','진짜','완전','계속','다시','이미','아직','가장','제일','모든','각','여러','많은','적은','큰','작은','좋은','나쁜','새로운','오래된','빠른','느린','하고','하면','하지','하는데','그리고','하지만','그래서','그런데','때문에','그것','이것','저것','했던','있던','없던','됐던','않았','시즌','season','ep','dp','part','vol','편','화','회','번','번째','the','and','in','of','is','to','a','for','dp1','dp2','dp3','ep1','ep2','s1','s2']);
-                  const wordCount = {};
-                  const allRefCards = [...filteredRef].slice(0, 30);
-                  allRefCards.forEach(v=>{
-                    const words = v.title
-                      .replace(/[^\uAC00-\uD7A3a-zA-Z0-9\s]/g, ' ')
-                      .split(/\s+/)
-                      .filter(w => {
-                        if (w.length < 2) return false;
-                        if (/^[a-zA-Z0-9]+$/.test(w) && w.length <= 3) return false; // 짧은 영숫자 제거
-                        if (stopWords.has(w.toLowerCase())) return false;
-                        if (/^\d+$/.test(w)) return false; // 숫자만 제거
-                        return true;
-                      });
-                    words.forEach(w=>{ wordCount[w]=(wordCount[w]||0)+1; });
-                  });
-                  const top = Object.entries(wordCount).filter(([,cnt])=>cnt>=2).sort((a,b)=>b[1]-a[1]).slice(0,10);
-                  if (top.length === 0) {
-                    const allTop = Object.entries(wordCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
-                    if (allTop.length === 0) return <p className="text-xs text-gray-400">레퍼런스 카드를 더 수집해주세요</p>;
-                  }
-                  const display = top.length > 0 ? top : Object.entries(wordCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
-                  const maxW = display[0]?.[1]||1;
-                  return (
-                    <div className="flex flex-wrap gap-1.5">
-                      {display.map(([word, cnt])=>{
-                        const ratio = cnt/maxW;
-                        const size = 10 + Math.round(ratio*5);
-                        return (
-                          <span key={word} className="px-2.5 py-1 rounded-full font-bold text-white"
-                            style={{backgroundColor:`rgba(99,102,241,${0.4+ratio*0.6})`, fontSize:`${size}px`}}>
-                            {word} <span style={{opacity:0.7, fontSize:'9px'}}>{cnt}</span>
-                          </span>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </div>
+            {/* 레퍼런스 키워드 분석 - 전체 너비 */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm">
+              <h3 className="text-sm font-black text-gray-900 mb-3">🔑 레퍼런스 키워드 TOP15</h3>
+              {(()=>{
+                const stopWords = new Set(['이','그','저','것','수','등','및','또','더','때','에서','으로','에게','부터','까지','이다','있다','하다','되다','않다','없다','같다','보다','대해','대한','위해','위한','통해','관한','한다','된다','있는','없는','하는','되는','않는','같은','보는','다는','는데','에는','으로는','이런','저런','어떤','무슨','얼마','왜','어디','누가','몇','아주','매우','너무','정말','진짜','완전','계속','다시','이미','아직','가장','제일','모든','각','여러','많은','적은','큰','작은','좋은','나쁜','새로운','오래된','빠른','느린','하고','하면','하지','하는데','그리고','하지만','그래서','그런데','때문에','그것','이것','저것','했던','있던','없던','됐던','않았','시즌','season','ep','dp','part','vol','편','화','회','번','번째','the','and','in','of','is','to','a','for','이유','때문','경우','정도','모습','생각','사람','사실','오늘','어제','내일']);
+                const wordCount = {};
+                filteredRef.slice(0,50).forEach(v=>{
+                  const words = v.title
+                    .replace(/[^\uAC00-\uD7A3a-zA-Z0-9\s]/g,' ')
+                    .split(/\s+/)
+                    .filter(w=>{
+                      if (w.length < 2) return false;
+                      if (/^[a-zA-Z0-9]+$/.test(w) && w.length <= 3) return false;
+                      if (stopWords.has(w.toLowerCase())) return false;
+                      if (/^\d+$/.test(w)) return false;
+                      return true;
+                    });
+                  words.forEach(w=>{ wordCount[w]=(wordCount[w]||0)+1; });
+                });
+                const display = Object.entries(wordCount).filter(([,cnt])=>cnt>=2).sort((a,b)=>b[1]-a[1]).slice(0,15);
+                const fallback = Object.entries(wordCount).sort((a,b)=>b[1]-a[1]).slice(0,15);
+                const final = display.length >= 5 ? display : fallback;
+                if (final.length === 0) return <p className="text-xs text-gray-400">레퍼런스 카드를 더 수집해주세요 (최소 10개 이상 권장)</p>;
+                const maxW = final[0]?.[1]||1;
+                return (
+                  <div className="flex flex-wrap gap-2">
+                    {final.map(([word, cnt])=>{
+                      const ratio = cnt/maxW;
+                      const size = 11 + Math.round(ratio*6);
+                      return (
+                        <span key={word} className="px-3 py-1.5 rounded-full font-bold text-white cursor-default"
+                          style={{backgroundColor:`rgba(99,102,241,${0.35+ratio*0.65})`, fontSize:`${size}px`}}
+                          title={`${cnt}회 등장`}>
+                          {word}
+                          <span className="ml-1 opacity-60" style={{fontSize:'9px'}}>{cnt}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Gemini AI 진단 */}
@@ -1672,6 +1641,26 @@ ${refTop5Titles}
                   {diagLoading?<><div className="w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin"/><span>분석 중...</span></>:<span>🔍 진단 시작</span>}
                 </button>
               </div>
+
+              {/* CSV 업로드 */}
+              <div className="bg-blue-50 rounded-2xl p-3 mb-3">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-xs font-black text-blue-700">📊 YouTube Studio CSV 업로드 (선택)</span>
+                  {csvData&&<span className="text-xs text-green-600 font-bold">✓ 업로드됨</span>}
+                </div>
+                <p className="text-xs text-blue-500 mb-2">YouTube Studio → 분석 → 콘텐츠 → 내보내기(↓) → CSV 파일 업로드하면 더 정밀한 진단이 가능해요</p>
+                <div className="flex items-center gap-2">
+                  <input type="file" accept=".csv" onChange={e=>{
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = ev => setCsvData(ev.target.result);
+                    reader.readAsText(file, 'UTF-8');
+                  }} className="text-xs text-blue-600 file:mr-2 file:px-3 file:py-1 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"/>
+                  {csvData&&<button onClick={()=>setCsvData("")} className="text-xs text-red-400 hover:text-red-600">제거</button>}
+                </div>
+              </div>
+
               {!geminiDiag&&!diagLoading&&(
                 <div className="bg-gray-50 rounded-2xl p-4 text-center">
                   <p className="text-xs text-gray-400">버튼을 눌러 Gemini가 내 채널과 레퍼런스를 비교 분석해드려요</p>
