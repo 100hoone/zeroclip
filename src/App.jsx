@@ -1622,8 +1622,6 @@ ${refTop5Titles}
   );
 };
 
-};
-
 const ANALYSIS_MODES = [
   { value:"hook",   label:"🎣 훅 패턴 분석",    desc:"제목/첫 문장의 공통 훅 구조 추출" },
   { value:"script", label:"📄 대본 구조 분석",   desc:"스토리 흐름, 문장 패턴 분석" },
