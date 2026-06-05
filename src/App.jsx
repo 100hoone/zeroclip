@@ -1069,7 +1069,8 @@ const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatCha
   const getYtUrl = ch => {
     const card = cards.find(c=>c.channel===ch.name&&c.channelUrl);
     if (card?.channelUrl) return card.channelUrl;
-    return `https://www.youtube.com/results?search_query=${encodeURIComponent(ch.name)}`;
+    // channelUrl 없으면 YouTube 검색으로
+    return `https://www.youtube.com/results?search_query=${encodeURIComponent(ch.name)}+채널`;
   };
 
   // ── 채널 상세 뷰 ──
