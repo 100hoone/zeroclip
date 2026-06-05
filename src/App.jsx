@@ -669,7 +669,7 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel }) => {
         const viewsStr = views>=10000000?`${(views/10000000).toFixed(1)}천만`:views>=1000000?`${(views/1000000).toFixed(0)}백만`:views>=10000?`${Math.round(views/10000)}만`:`${views}`;
         const daysDiff = Math.floor((Date.now()-new Date(v.snippet.publishedAt))/86400000);
         const daysAgo = daysDiff===0?"오늘":daysDiff<=3?`${daysDiff}일 전`:daysDiff<=14?"1주일 전":daysDiff<=45?"1개월 전":daysDiff<=75?"2개월 전":daysDiff<=105?"3개월 전":daysDiff<=210?"6개월 전":daysDiff<=395?"1년 전":"2년 전";
-        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multiplier}`, mainCat:selectedCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
+        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multiplier}`, mainCat:selectedCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, channelUrl:channelUrl, thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
       })||[];
       setPreview(cards); setStep("preview");
     } catch(e) { setError("수집 중 오류가 발생했어요. API 키나 채널 URL을 확인해주세요."); }
@@ -1066,7 +1066,11 @@ const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatCha
 
   const selectedCards = selectedCh ? cards.filter(c=>c.channel===selectedCh) : [];
   const mainCats = Object.keys(TAXONOMY);
-  const getYtUrl = ch => `https://www.youtube.com/@${encodeURIComponent(ch.name)}`;
+  const getYtUrl = ch => {
+    const card = cards.find(c=>c.channel===ch.name&&c.channelUrl);
+    if (card?.channelUrl) return card.channelUrl;
+    return `https://www.youtube.com/results?search_query=${encodeURIComponent(ch.name)}`;
+  };
 
   // ── 채널 상세 뷰 ──
   if (selectedCh) {
@@ -1140,10 +1144,16 @@ const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatCha
             const color = TAXONOMY[card.mainCat]?.color||"#888";
             const subs  = Array.isArray(card.subCat)?card.subCat:(card.subCat&&card.subCat!=="전체"?[card.subCat]:[]);
             return (
-              <div key={card.id} className="bg-white rounded-2xl overflow-hidden shadow-sm">
+              <a key={card.id} href={card.url} target="_blank" rel="noopener noreferrer"
+                className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer block">
                 <div className="relative" style={{height:"130px"}}>
                   <img src={card.thumbnail} className="w-full h-full object-cover"/>
                   <div className="absolute top-1.5 left-1.5 bg-black/70 text-white text-xs font-black px-1.5 py-0.5 rounded-lg">{card.multiplier}</div>
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-black/20">
+                    <div className="w-9 h-9 bg-white/90 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                    </div>
+                  </div>
                 </div>
                 <div className="p-2.5">
                   <p className="text-xs font-bold text-gray-900 line-clamp-2 mb-1.5" style={{minHeight:"2rem"}}>{card.title}</p>
@@ -1152,7 +1162,7 @@ const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatCha
                     {subs.map(s=><span key={s} className="text-xs px-1.5 py-0.5 rounded-full" style={{backgroundColor:color+"10",color,border:`1px solid ${color}30`}}>{s}</span>)}
                   </div>
                 </div>
-              </div>
+              </a>
             );
           })}
         </div>
@@ -1910,18 +1920,19 @@ const Dashboard = ({ cards, allTags }) => {
             const color = TAXONOMY[item.mainCat]?.color||"#888";
             const pct = maxMultiplier>0?(parseFloat(item.multiplier?.replace("×","")||0)/maxMultiplier)*100:0;
             return (
-              <div key={item.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
+              <a key={item.id} href={item.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors group cursor-pointer">
                 <span className={`text-sm font-black w-6 text-center flex-shrink-0 ${i<3?"text-yellow-500":"text-gray-400"}`}>{i+1}</span>
                 <img src={item.thumbnail||`https://picsum.photos/seed/${item.id}/80/60`} className="w-14 h-9 object-cover rounded-xl flex-shrink-0"/>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-gray-900 truncate">{item.title}</p>
+                  <p className="text-xs font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">{item.title}</p>
                   <p className="text-xs text-gray-400 mb-1">{item.channel} · {item.views}</p>
                   <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
                     <div className="h-full rounded-full transition-all duration-700" style={{width:`${pct}%`,backgroundColor:color}}/>
                   </div>
                 </div>
                 <span className="text-xs font-black px-2 py-1 rounded-xl flex-shrink-0" style={{backgroundColor:color+"20",color}}>{item.multiplier}</span>
-              </div>
+              </a>
             );
           })}
         </div>
