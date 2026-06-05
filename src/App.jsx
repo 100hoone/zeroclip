@@ -1592,26 +1592,16 @@ ${refTop5Titles}
               <div className="bg-white rounded-2xl p-5 shadow-sm">
                 <h3 className="text-sm font-black text-gray-900 mb-3">📈 조회수 분포</h3>
                 {(()=>{
-                  const validViews = allViews.filter(v=>v>0);
-                  if (validViews.length === 0) return <p className="text-xs text-gray-400">조회수 데이터가 없어요</p>;
+                  const validViews = allViews.filter(v=>v>1000); // 1천 이상만 유의미한 데이터
+                  if (validViews.length === 0) return <p className="text-xs text-gray-400">유의미한 조회수 데이터가 없어요</p>;
                   const max = Math.max(...validViews);
                   const buckets = 6;
                   const bsize = max / buckets;
                   const counts = Array(buckets).fill(0);
                   validViews.forEach(v=>{ const i=Math.min(Math.floor(v/bsize), buckets-1); counts[i]++; });
                   const maxCount = Math.max(...counts, 1);
-                  const zeroCount = allViews.length - validViews.length;
                   return (
                     <div className="space-y-2">
-                      {zeroCount > 0 && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400 w-14 flex-shrink-0 text-right">0</span>
-                          <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-gray-300" style={{width:`${(zeroCount/allViews.length)*100}%`}}/>
-                          </div>
-                          <span className="text-xs text-gray-400 w-6 flex-shrink-0">{zeroCount}</span>
-                        </div>
-                      )}
                       {counts.map((cnt, i)=>(
                         <div key={i} className="flex items-center gap-2">
                           <span className="text-xs text-gray-400 w-14 flex-shrink-0 text-right">{fmtNum(Math.round(bsize*i))}</span>
@@ -1621,7 +1611,7 @@ ${refTop5Titles}
                           <span className="text-xs text-gray-500 w-6 flex-shrink-0">{cnt}</span>
                         </div>
                       ))}
-                      <p className="text-xs text-gray-400 mt-1 text-center">내 채널 {allViews.length}개 영상 기준</p>
+                      <p className="text-xs text-gray-400 mt-1 text-center">유의미한 조회수 {validViews.length}개 영상 기준</p>
                     </div>
                   );
                 })()}
