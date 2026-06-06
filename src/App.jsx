@@ -2251,7 +2251,7 @@ export default function ZeroClip() {
   const [subCat, setSubCat]         = useState("전체");
   const [search, setSearch]         = useState("");
   const [selectedIds, setSelectedIds]= useState([]);
-  const [sortBy, setSortBy]         = useState("multiplier");
+  const [sortBy, setSortBy]         = useState("date");
   const [sortDir, setSortDir]       = useState("asc");
   const [period, setPeriod]         = useState("week");
   const [customFrom, setCustomFrom] = useState("");
