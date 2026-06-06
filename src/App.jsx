@@ -2328,7 +2328,13 @@ export default function ZeroClip() {
           const viewsStr = views>=10000000?`${(views/10000000).toFixed(1)}천만`:views>=1000000?`${(views/1000000).toFixed(0)}백만`:views>=10000?`${Math.round(views/10000)}만`:`${views}`;
           const daysDiff = Math.floor((Date.now()-new Date(v.snippet.publishedAt))/86400000);
           const daysAgo  = daysDiff===0?"오늘":daysDiff<=3?`${daysDiff}일 전`:daysDiff<=14?"1주일 전":"1개월 전";
-          return { id:Date.now()+Math.random(), title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:"×?", mainCat:ch.category||"전체", subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, channelUrl:ch.url||"", thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"" };
+          // 카테고리: 등록된 카테고리 → 기존 카드에서 해당 채널 카테고리 추출 → 전체 순서로 fallback
+          const chName = v.snippet.channelTitle;
+          const existingCat = existing.filter(c=>c.channel===chName&&c.mainCat&&c.mainCat!=="전체")
+            .reduce((acc,c)=>{ acc[c.mainCat]=(acc[c.mainCat]||0)+1; return acc; },{});
+          const topCat = Object.entries(existingCat).sort((a,b)=>b[1]-a[1])[0]?.[0];
+          const finalCat = (ch.category&&ch.category!=="전체") ? ch.category : (topCat||"전체");
+          return { id:Date.now()+Math.random(), title:v.snippet.title, channel:chName, views:viewsStr, multiplier:"×?", mainCat:finalCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, channelUrl:ch.url||"", thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"" };
         });
         if (newCards.length>0) {
           newCount += newCards.length;
