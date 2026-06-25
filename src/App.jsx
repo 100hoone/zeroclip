@@ -1858,6 +1858,13 @@ ${item.script?`\n📄 대본:\n${item.script}`:""}
 // 대시보드 탭
 // ─────────────────────────────────────────────
 const Dashboard = ({ cards, allTags }) => {
+  if (cards.length === 0) return (
+    <div className="flex flex-col items-center justify-center py-24 text-gray-300">
+      <span className="text-5xl mb-4">📊</span>
+      <p className="font-bold text-lg text-gray-400">필터 조건에 맞는 카드가 없어요</p>
+      <p className="text-sm text-gray-300 mt-1">갤러리에서 기간/카테고리 필터를 바꿔보세요</p>
+    </div>
+  );
   // 카테고리별 평균 배수
   const catStats = useMemo(()=>{
     const map = {};
@@ -2481,7 +2488,7 @@ export default function ZeroClip() {
 
       {/* ── 탭 콘텐츠 ── */}
       {tab==="dashboard" ? (
-        <Dashboard cards={cards} allTags={allTags}/>
+        <Dashboard cards={filtered} allTags={allTags}/>
       ) : tab==="mychannel" ? (
         <MyChannelTab refCards={cards} apiKey={apiKey} geminiKey={geminiKey}/>
       ) : tab==="channels" ? (
