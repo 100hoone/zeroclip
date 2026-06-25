@@ -500,7 +500,7 @@ const MyViewsModal = ({ item, onClose, onSave }) => {
 // ─────────────────────────────────────────────
 // 설정 모달
 // ─────────────────────────────────────────────
-const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory, onAddSub, onRemoveSub }) => {
+const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory, onAddSub, onRemoveSub, onFixDates }) => {
   const [key, setKey]         = useState(apiKey);
   const [gKey, setGKey]       = useState(geminiKey);
   const [showYt, setShowYt]   = useState(false);
@@ -630,9 +630,16 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
             </div>
           </div>
 
-          <div className="bg-blue-50 rounded-2xl p-3 mb-4">
+          <div className="bg-blue-50 rounded-2xl p-3 mb-3">
             <p className="text-xs font-bold text-blue-700 mb-1">🔒 보안 안내</p>
             <p className="text-xs text-blue-600">모든 API 키는 이 브라우저에만 저장돼요. 서버로 전송되지 않아요.</p>
+          </div>
+          <div className="bg-orange-50 rounded-2xl p-3 mb-4">
+            <p className="text-xs font-bold text-orange-700 mb-1">📅 기간 필터 정확도 개선</p>
+            <p className="text-xs text-orange-600 mb-2">기존 카드 날짜를 YouTube에서 가져와요. 기간 필터가 부정확하면 실행해주세요.</p>
+            <button onClick={()=>{onClose();setTimeout(()=>onFixDates(),100);}} className="text-xs font-black px-3 py-1.5 rounded-xl text-white" style={{background:"#f97316"}}>
+              🔧 카드 날짜 일괄 업데이트
+            </button>
           </div>
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-gray-500">취소</button>
@@ -2375,6 +2382,41 @@ export default function ZeroClip() {
 
   const login        = () => { sessionStorage.setItem("zc_auth","1"); setLoggedIn(true); };
   const saveApiKey   = key => { setApiKey(key);    localStorage.setItem("yt_api_key", key); };
+
+  // 기존 카드 날짜 일괄 업데이트
+  const fixCardDates = async () => {
+    if (!apiKey||!apiKey.startsWith("AIza")) { alert("API 키를 설정에서 먼저 등록해주세요"); return; }
+    const missing = cards.filter(c=>!c.publishedAt&&c.url);
+    if (missing.length===0) { alert("모든 카드에 날짜 정보가 있어요!"); return; }
+    if (!window.confirm(`${missing.length}개 카드의 날짜 정보를 업데이트할게요. (시간이 걸릴 수 있어요)`)) return;
+
+    let updated = 0;
+    const CHUNK = 50;
+    const allCards = [...cards];
+
+    for (let i=0; i<missing.length; i+=CHUNK) {
+      const chunk = missing.slice(i, i+CHUNK);
+      const ids = chunk.map(c=>{
+        const m = c.url?.match(/(?:v=|shorts\/)([A-Za-z0-9_-]{11})/);
+        return m?.[1];
+      }).filter(Boolean).join(",");
+      if (!ids) continue;
+      try {
+        const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${ids}&key=${apiKey}`);
+        const data = await res.json();
+        data.items?.forEach(v=>{
+          const idx = allCards.findIndex(c=>c.url?.includes(v.id));
+          if (idx>=0 && v.snippet?.publishedAt) {
+            allCards[idx] = {...allCards[idx], publishedAt: v.snippet.publishedAt};
+            updated++;
+          }
+        });
+      } catch(e) { console.error(e); }
+    }
+    setCards(allCards);
+    localStorage.setItem("zc_cards", JSON.stringify(allCards));
+    alert(`✅ ${updated}개 카드 날짜 업데이트 완료!`);
+  };
   const saveGeminiKey= key => { setGeminiKey(key); localStorage.setItem("gemini_api_key", key); };
   const addTag    = tag => { if (!allTags.includes(tag)) setAllTags(p=>[...p,tag]); };
   const removeTag = tag => { setAllTags(p=>p.filter(t=>t!==tag)); setCards(p=>p.map(c=>({...c,tags:c.tags?.filter(t=>t!==tag)||[]}))); };
@@ -2557,7 +2599,7 @@ export default function ZeroClip() {
       {catEditTarget    &&<CatEditModal      item={catEditTarget} onClose={()=>setCatEditTarget(null)} onSave={saveCat}/>}
       {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)} geminiKey={geminiKey}/>}
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
-      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub}/>}
+      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub} onFixDates={fixCardDates}/>}
       {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)} apiKey={apiKey}/>}
       {showCategoryFetch&&<CategoryAutoFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowCategoryFetch(false)}/>}
       {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowChannelFetch(false)}
