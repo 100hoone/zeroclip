@@ -45,15 +45,32 @@ const DEFAULT_TAGS = ["🔥급하게쓸것","📦장기보관","✅이미했음"
 
 const daysMap = {"오늘":0,"3일 전":3,"1주일 전":7,"2주일 전":14,"1개월 전":30,"2개월 전":60,"3개월 전":90,"4개월 전":120,"5개월 전":150,"6개월 전":180,"8개월 전":240,"10개월 전":300,"11개월 전":330,"1년 전":365,"2년 전":730};
 
-const isInPeriod = (daysAgo, period, from, to) => {
+// publishedAt 있으면 정확한 날짜로, 없으면 daysAgo 텍스트로 계산
+const getCardDays = (card) => {
+  if (card.publishedAt) return Math.floor((Date.now()-new Date(card.publishedAt))/86400000);
+  return daysMap[card.daysAgo]??999;
+};
+
+const calcDaysAgoText = (publishedAt) => {
+  const d = Math.floor((Date.now()-new Date(publishedAt))/86400000);
+  return d===0?"오늘":d<=3?`${d}일 전`:d<=14?"1주일 전":d<=45?"1개월 전":d<=75?"2개월 전":d<=105?"3개월 전":d<=210?"6개월 전":d<=395?"1년 전":"2년 전";
+};
+
+const isInPeriod = (card, period, from, to) => {
   if (period==="all") return true;
-  const d = daysMap[daysAgo]??999;
+  const d = getCardDays(card);
   if (period==="today") return d===0;
   if (period==="week")  return d<=7;
   if (period==="month") return d<=30;
   if (period==="year")  return d<=365;
   if (period==="custom") {
     if (!from&&!to) return true;
+    const pub = card.publishedAt ? new Date(card.publishedAt) : null;
+    if (pub) {
+      const fromTs = from ? new Date(from).getTime() : 0;
+      const toTs   = to   ? new Date(to+"T23:59:59").getTime() : Date.now();
+      return pub.getTime()>=fromTs && pub.getTime()<=toTs;
+    }
     const now=new Date(); const itemDate=new Date(now); itemDate.setDate(now.getDate()-d);
     if (from&&itemDate<new Date(from)) return false;
     if (to&&itemDate>new Date(to+"T23:59:59")) return false;
@@ -676,7 +693,7 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel }) => {
         const viewsStr = views>=10000000?`${(views/10000000).toFixed(1)}천만`:views>=1000000?`${(views/1000000).toFixed(0)}백만`:views>=10000?`${Math.round(views/10000)}만`:`${views}`;
         const daysDiff = Math.floor((Date.now()-new Date(v.snippet.publishedAt))/86400000);
         const daysAgo = daysDiff===0?"오늘":daysDiff<=3?`${daysDiff}일 전`:daysDiff<=14?"1주일 전":daysDiff<=45?"1개월 전":daysDiff<=75?"2개월 전":daysDiff<=105?"3개월 전":daysDiff<=210?"6개월 전":daysDiff<=395?"1년 전":"2년 전";
-        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multiplier}`, mainCat:selectedCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, channelUrl:channelUrl, thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
+        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multiplier}`, mainCat:selectedCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, channelUrl:channelUrl, thumbnail:v.snippet.thumbnails?.medium?.url||"", publishedAt:v.snippet?.publishedAt||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
       })||[];
       setPreview(cards); setStep("preview");
     } catch(e) { setError("수집 중 오류가 발생했어요. API 키나 채널 URL을 확인해주세요."); }
@@ -945,7 +962,7 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
         const viewsStr = views>=10000000?`${(views/10000000).toFixed(1)}천만`:views>=1000000?`${(views/1000000).toFixed(0)}백만`:views>=10000?`${Math.round(views/10000)}만`:`${views}`;
         const daysDiff = Math.floor((Date.now()-new Date(v.snippet.publishedAt))/86400000);
         const daysAgo  = daysDiff===0?"오늘":daysDiff<=3?`${daysDiff}일 전`:daysDiff<=14?"1주일 전":daysDiff<=45?"1개월 전":daysDiff<=75?"2개월 전":daysDiff<=105?"3개월 전":daysDiff<=210?"6개월 전":daysDiff<=395?"1년 전":"2년 전";
-        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multi}`, mainCat:"전체", subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
+        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multi}`, mainCat:"전체", subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, thumbnail:v.snippet.thumbnails?.medium?.url||"", publishedAt:v.snippet?.publishedAt||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
       });
       setPreview(cards); setStep("preview");
     } catch(e) { setError("수집 중 오류가 발생했어요."); }
@@ -2341,7 +2358,7 @@ export default function ZeroClip() {
             .reduce((acc,c)=>{ acc[c.mainCat]=(acc[c.mainCat]||0)+1; return acc; },{});
           const topCat = Object.entries(existingCat).sort((a,b)=>b[1]-a[1])[0]?.[0];
           const finalCat = (ch.category&&ch.category!=="전체") ? ch.category : (topCat||"전체");
-          return { id:Date.now()+Math.random(), title:v.snippet.title, channel:chName, views:viewsStr, multiplier:"×?", mainCat:finalCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, channelUrl:ch.url||"", thumbnail:v.snippet.thumbnails?.medium?.url||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"" };
+          return { id:Date.now()+Math.random(), title:v.snippet.title, channel:chName, views:viewsStr, multiplier:"×?", mainCat:finalCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, channelUrl:ch.url||"", thumbnail:v.snippet.thumbnails?.medium?.url||"", publishedAt:v.snippet?.publishedAt||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"" };
         });
         if (newCards.length>0) {
           newCount += newCards.length;
@@ -2383,14 +2400,14 @@ export default function ZeroClip() {
       if (mainCat!=="전체"&&item.mainCat!==mainCat) return false;
       if (subCat!=="전체"&&item.subCat!==subCat)  return false;
       if (search&&!item.title.includes(search)&&!item.channel.includes(search)&&!item.subCat?.includes(search)) return false;
-      if (!isInPeriod(item.daysAgo,period,customFrom,customTo)) return false;
+      if (!isInPeriod(item,period,customFrom,customTo)) return false;
       return true;
     })
     .sort((a,b)=>{
       const dir=sortDir==="desc"?-1:1;
       if (sortBy==="multiplier") return dir*(parseFloat(b.multiplier?.replace("×","")||0)-parseFloat(a.multiplier?.replace("×","")||0));
       if (sortBy==="views") return dir*(toViewsNum(b.views)-toViewsNum(a.views));
-      if (sortBy==="date") return dir*((daysMap[a.daysAgo]??999)-(daysMap[b.daysAgo]??999));
+      if (sortBy==="date") return dir*(getCardDays(a)-getCardDays(b));
       return 0;
     });
 
