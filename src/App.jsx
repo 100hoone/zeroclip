@@ -133,10 +133,10 @@ const LoginScreen = ({ onLogin }) => {
             type="password" value={pw} onChange={e=>setPw(e.target.value)}
             onKeyDown={e=>e.key==="Enter"&&submit()}
             placeholder="비밀번호를 입력하세요"
-            className="w-full bg-gray-800 text-white text-sm rounded-2xl px-4 py-3 outline-none border-2 border-transparent focus:border-gray-600 mb-3 placeholder-gray-600"
+            className="w-full bg-gray-800 text-white text-sm rounded-2xl px-4 py-3 outline-none border-2 border-transparent focus:border-orange-400 mb-3 placeholder-gray-600"
           />
           {err && <p className="text-red-400 text-xs mb-3 font-bold text-center">❌ 비밀번호가 틀렸어요</p>}
-          <button onClick={submit} className="w-full py-3 rounded-2xl text-sm font-black text-gray-900" style={{background:"#00ff97"}}>
+          <button onClick={submit} className="w-full py-3 rounded-2xl text-sm font-black text-gray-900" style={{background:"#FF8C00"}}>
             입장하기
           </button>
         </div>
@@ -175,7 +175,7 @@ const PeriodFilter = ({ period, setPeriod, customFrom, setCustomFrom, customTo, 
                 <input type="date" value={customFrom} onChange={e=>setCustomFrom(e.target.value)} className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 outline-none"/></div>
               <div><label className="text-xs text-gray-400 block mb-1">종료일</label>
                 <input type="date" value={customTo} onChange={e=>setCustomTo(e.target.value)} className="w-full text-xs border border-gray-200 rounded-xl px-3 py-2 outline-none"/></div>
-              <button onClick={()=>setOpen(false)} className="w-full text-white text-xs font-bold py-2 rounded-xl" style={{background:"#00ff97",color:"#111"}}>적용</button>
+              <button onClick={()=>setOpen(false)} className="w-full text-white text-xs font-bold py-2 rounded-xl" style={{background:"#FF8C00",color:"#111"}}>적용</button>
             </div>
           )}
         </div>
@@ -394,7 +394,7 @@ const ScriptModal = ({ item, onClose, onSave, geminiKey }) => {
           className="flex-1 p-5 text-sm text-gray-800 leading-relaxed outline-none resize-none placeholder-gray-300"
           style={{minHeight:"300px"}}/>
         <div className="p-4 border-t border-gray-100">
-          <button onClick={()=>{onSave(item.id,text);onClose();}} className="w-full py-2.5 text-gray-900 text-sm font-black rounded-2xl" style={{background:"#00ff97"}}>저장</button>
+          <button onClick={()=>{onSave(item.id,text);onClose();}} className="w-full py-2.5 text-gray-900 text-sm font-black rounded-2xl" style={{background:"#FF8C00"}}>저장</button>
         </div>
       </div>
     </div>
@@ -417,7 +417,7 @@ const MemoModal = ({ item, onClose, onSave }) => {
           <textarea value={text} onChange={e=>setText(e.target.value)} rows={5} placeholder="소재 메모를 남겨보세요" className="w-full text-sm border border-gray-200 rounded-2xl px-4 py-3 outline-none resize-none"/>
           <div className="flex gap-2 mt-3">
             <button onClick={onClose} className="flex-1 py-2.5 rounded-2xl border border-gray-200 text-sm font-bold text-gray-500">취소</button>
-            <button onClick={()=>{onSave(item.id,text);onClose();}} className="flex-1 py-2.5 text-gray-900 text-sm font-black rounded-2xl" style={{background:"#00ff97"}}>저장</button>
+            <button onClick={()=>{onSave(item.id,text);onClose();}} className="flex-1 py-2.5 text-gray-900 text-sm font-black rounded-2xl" style={{background:"#FF8C00"}}>저장</button>
           </div>
         </div>
       </div>
@@ -444,14 +444,14 @@ const TagModal = ({ item, onClose, onSave, allTags }) => {
             {allTags.map(tag=>(
               <button key={tag} onClick={()=>toggle(tag)}
                 className={`text-xs px-3 py-1.5 rounded-full font-bold transition-all ${selected.includes(tag)?"text-gray-900":"bg-gray-100 text-gray-500"}`}
-                style={selected.includes(tag)?{background:"#00ff97"}:{}}>
+                style={selected.includes(tag)?{background:"#FF8C00"}:{}}>
                 {tag}
               </button>
             ))}
           </div>
           <div className="flex gap-2 mt-4">
             <button onClick={onClose} className="flex-1 py-2.5 rounded-2xl border border-gray-200 text-sm font-bold text-gray-500">취소</button>
-            <button onClick={()=>{onSave(item.id,selected);onClose();}} className="flex-1 py-2.5 text-gray-900 text-sm font-black rounded-2xl" style={{background:"#00ff97"}}>저장</button>
+            <button onClick={()=>{onSave(item.id,selected);onClose();}} className="flex-1 py-2.5 text-gray-900 text-sm font-black rounded-2xl" style={{background:"#FF8C00"}}>저장</button>
           </div>
         </div>
       </div>
@@ -489,7 +489,7 @@ const MyViewsModal = ({ item, onClose, onSave }) => {
           )}
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-2.5 rounded-2xl border border-gray-200 text-sm font-bold text-gray-500">취소</button>
-            <button onClick={()=>{onSave(item.id,views);onClose();}} className="flex-1 py-2.5 text-gray-900 text-sm font-black rounded-2xl" style={{background:"#00ff97"}}>저장</button>
+            <button onClick={()=>{onSave(item.id,views);onClose();}} className="flex-1 py-2.5 text-gray-900 text-sm font-black rounded-2xl" style={{background:"#FF8C00"}}>저장</button>
           </div>
         </div>
       </div>
@@ -586,7 +586,7 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
                           onKeyDown={e=>{if(e.key==="Enter"&&newSub.trim()){onAddSub(name,newSub.trim());setNewSub("");}}}
                           placeholder="소분류 추가..." className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none"/>
                         <button onClick={()=>{if(newSub.trim()){onAddSub(name,newSub.trim());setNewSub("");}}}
-                          className="px-2 py-1.5 rounded-lg text-xs font-black text-gray-900" style={{background:"#00ff97"}}>추가</button>
+                          className="px-2 py-1.5 rounded-lg text-xs font-black text-gray-900" style={{background:"#FF8C00"}}>추가</button>
                       </div>
                     </div>
                   )}
@@ -608,7 +608,7 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
                 ))}
               </div>
               <button onClick={()=>{if(newCatName.trim()){onAddCategory(newCatName.trim(),newCatEmoji,newCatColor);setNewCatName("");}}}
-                className="px-3 py-2 rounded-xl text-xs font-black text-gray-900 flex-shrink-0" style={{background:"#00ff97"}}>추가</button>
+                className="px-3 py-2 rounded-xl text-xs font-black text-gray-900 flex-shrink-0" style={{background:"#FF8C00"}}>추가</button>
             </div>
           </div>
 
@@ -626,7 +626,7 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
             <div className="flex gap-2">
               <input value={newTag} onChange={e=>setNewTag(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&newTag.trim()){onAddTag(newTag.trim());setNewTag("");}}}
                 placeholder="새 태그 추가..." className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none"/>
-              <button onClick={()=>{if(newTag.trim()){onAddTag(newTag.trim());setNewTag("");}}} className="px-3 py-2 rounded-xl text-xs font-black text-gray-900" style={{background:"#00ff97"}}>추가</button>
+              <button onClick={()=>{if(newTag.trim()){onAddTag(newTag.trim());setNewTag("");}}} className="px-3 py-2 rounded-xl text-xs font-black text-gray-900" style={{background:"#FF8C00"}}>추가</button>
             </div>
           </div>
 
@@ -643,7 +643,7 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
           </div>
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-gray-500">취소</button>
-            <button onClick={()=>{onSave(key);onSaveGemini(gKey);onClose();}} className="flex-1 py-3 rounded-2xl text-sm font-black text-gray-900" style={{background:"#00ff97"}}>저장</button>
+            <button onClick={()=>{onSave(key);onSaveGemini(gKey);onClose();}} className="flex-1 py-3 rounded-2xl text-sm font-black text-gray-900" style={{background:"#FF8C00"}}>저장</button>
           </div>
         </div>
       </div>
@@ -735,13 +735,13 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel }) => {
               <label className="text-xs font-black text-gray-600 block mb-2">가져올 영상 수</label>
               <div className="flex gap-2">
                 {[10,20,30,50].map(n=>(
-                  <button key={n} onClick={()=>setMaxResults(n)} className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${maxResults===n?"text-gray-900":"bg-gray-100 text-gray-500"}`} style={maxResults===n?{background:"#00ff97"}:{}}>{n}개</button>
+                  <button key={n} onClick={()=>setMaxResults(n)} className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all ${maxResults===n?"text-gray-900":"bg-gray-100 text-gray-500"}`} style={maxResults===n?{background:"#FF8C00"}:{}}>{n}개</button>
                 ))}
               </div>
             </div>
             {error&&<p className="text-sm text-red-500 font-medium bg-red-50 rounded-xl px-4 py-3">⚠️ {error}</p>}
             <button onClick={fetchVideos} disabled={loading||!channelUrl.trim()||!apiKey}
-              className="w-full py-3 rounded-2xl text-sm font-black text-gray-900 disabled:opacity-40" style={{background:"#00ff97"}}>
+              className="w-full py-3 rounded-2xl text-sm font-black text-gray-900 disabled:opacity-40" style={{background:"#FF8C00"}}>
               {loading?"수집 중...":"🚀 영상 가져오기"}
             </button>
             {loading&&<div className="flex items-center justify-center gap-2 text-gray-400"><div className="w-4 h-4 rounded-full border-2 border-gray-200 border-t-gray-500 animate-spin"/><p className="text-xs">데이터 가져오는 중...</p></div>}
@@ -778,7 +778,7 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel }) => {
             </div>
             <div className="p-4 border-t border-gray-100 space-y-2">
               <button onClick={addSelected} disabled={preview.filter(c=>c._selected).length===0}
-                className="w-full py-3 rounded-2xl text-sm font-black text-gray-900 disabled:opacity-40" style={{background:"#00ff97"}}>
+                className="w-full py-3 rounded-2xl text-sm font-black text-gray-900 disabled:opacity-40" style={{background:"#FF8C00"}}>
                 ✅ {preview.filter(c=>c._selected).length}개 갤러리에 추가
               </button>
               {onRegisterChannel&&preview.length>0&&(
@@ -897,7 +897,7 @@ const VideoAddModal = ({ onAdd, onClose, apiKey }) => {
                 className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-gray-400"/>
               <button onClick={fetchMeta} disabled={fetching||!url.trim()}
                 className="px-3 py-2.5 rounded-xl text-xs font-black text-gray-900 disabled:opacity-40 flex-shrink-0"
-                style={{background:"#00ff97"}}>
+                style={{background:"#FF8C00"}}>
                 {fetching?<div className="w-4 h-4 rounded-full border-2 border-gray-300 border-t-gray-700 animate-spin"/>:"자동완성"}
               </button>
             </div>
@@ -932,7 +932,7 @@ const VideoAddModal = ({ onAdd, onClose, apiKey }) => {
 
           <button onClick={handleAdd} disabled={!url.trim()||!title.trim()}
             className="w-full py-3 rounded-2xl text-sm font-black text-gray-900 disabled:opacity-40"
-            style={{background:"#00ff97"}}>
+            style={{background:"#FF8C00"}}>
             ✅ 갤러리에 추가
           </button>
         </div>
@@ -1000,7 +1000,7 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
               <div className="flex gap-2">
                 {[10,20,30,50].map(n=>(
                   <button key={n} onClick={()=>setMaxResults(n)} className="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
-                    style={maxResults===n?{background:"#00ff97",color:"#111"}:{backgroundColor:"#f3f4f6",color:"#6b7280"}}>
+                    style={maxResults===n?{background:"#FF8C00",color:"#111"}:{backgroundColor:"#f3f4f6",color:"#6b7280"}}>
                     {n}개
                   </button>
                 ))}
@@ -1010,7 +1010,7 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
             {!apiKey&&<p className="text-xs text-yellow-700 bg-yellow-50 rounded-xl px-4 py-3">⚠️ API 키를 먼저 ⚙️ 설정에서 등록해주세요</p>}
             <button onClick={fetchTrending} disabled={loading||!apiKey}
               className="w-full py-3 rounded-2xl text-sm font-black text-gray-900 disabled:opacity-40"
-              style={{background:"#00ff97"}}>
+              style={{background:"#FF8C00"}}>
               {loading?"수집 중...":"🚀 한국 인기 급상승 가져오기"}
             </button>
             {loading&&<div className="flex items-center justify-center gap-2 text-gray-400"><div className="w-4 h-4 rounded-full border-2 border-gray-200 border-t-gray-500 animate-spin"/><p className="text-xs">YouTube 급상승 데이터 가져오는 중...</p></div>}
@@ -1049,7 +1049,7 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
             <div className="p-4 border-t border-gray-100">
               <button onClick={addSelected} disabled={preview.filter(c=>c._selected).length===0}
                 className="w-full py-3 rounded-2xl text-sm font-black text-gray-900 disabled:opacity-40"
-                style={{background:"#00ff97"}}>
+                style={{background:"#FF8C00"}}>
                 ✅ {preview.filter(c=>c._selected).length}개 갤러리에 추가
               </button>
             </div>
@@ -1180,7 +1180,7 @@ const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatCha
                   onBulkCatChange(selectedCh, bulkMainCat, bulkSubCats);
                   setEditingCh(null);
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-black text-gray-900" style={{background:"#00ff97"}}>
+                className="px-4 py-2 rounded-xl text-xs font-black text-gray-900" style={{background:"#FF8C00"}}>
                 ✅ "{selectedCh}" {selectedCards.length}개 카드에만 적용
               </button>
               <button onClick={()=>setEditingCh(null)} className="px-4 py-2 rounded-xl text-xs font-bold text-gray-500 bg-gray-100">취소</button>
@@ -1500,7 +1500,7 @@ ${refTop5Titles}
                 {mainCats.map(c=><option key={c} value={c}>{TAXONOMY[c]?.emoji} {c}</option>)}
               </select>
             </div>
-            <button onClick={addChannel} disabled={adding||!addUrl.trim()} className="px-4 py-2.5 rounded-xl text-sm font-black text-gray-900 disabled:opacity-40" style={{background:"#00ff97"}}>{adding?"등록 중...":"등록"}</button>
+            <button onClick={addChannel} disabled={adding||!addUrl.trim()} className="px-4 py-2.5 rounded-xl text-sm font-black text-gray-900 disabled:opacity-40" style={{background:"#FF8C00"}}>{adding?"등록 중...":"등록"}</button>
             <button onClick={()=>{setShowAddForm(false);setAddError("");}} className="px-4 py-2.5 rounded-xl text-sm font-bold text-gray-500 bg-gray-100">취소</button>
           </div>
           {addError&&<p className="text-xs text-red-500 mt-2">⚠️ {addError}</p>}
@@ -1871,7 +1871,7 @@ ${item.script?`\n📄 대본:\n${item.script}`:""}
         </div>
         <div className="p-4 border-t border-gray-100 flex gap-2">
           <button onClick={copy} className={`flex-1 py-2.5 rounded-2xl text-sm font-bold transition-all ${copied?"bg-green-500 text-white":"bg-gray-100 text-gray-700"}`}>{copied?"✓ 복사됨":"📋 복사"}</button>
-          <button onClick={download} className="flex-1 py-2.5 rounded-2xl text-sm font-black text-gray-900" style={{background:"#00ff97"}}>⬇️ 다운로드</button>
+          <button onClick={download} className="flex-1 py-2.5 rounded-2xl text-sm font-black text-gray-900" style={{background:"#FF8C00"}}>⬇️ 다운로드</button>
         </div>
       </div>
     </div>
@@ -2056,7 +2056,7 @@ const Dashboard = ({ cards, allTags }) => {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-gray-900 truncate">@{s.ch}</p>
                   <div className="mt-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{width:`${(parseFloat(s.avg)/maxChAvg)*100}%`,background:"#00ff97"}}/>
+                    <div className="h-full rounded-full" style={{width:`${(parseFloat(s.avg)/maxChAvg)*100}%`,background:"#FF8C00"}}/>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0">
@@ -2177,7 +2177,7 @@ const CatEditModal = ({ item, onClose, onSave }) => {
 
           <button onClick={()=>{onSave(item.id, mainCat, subCats);onClose();}}
             className="w-full py-2.5 rounded-2xl text-sm font-black text-gray-900"
-            style={{background:"#00ff97"}}>저장</button>
+            style={{background:"#FF8C00"}}>저장</button>
         </div>
       </div>
     </div>
@@ -2486,14 +2486,14 @@ export default function ZeroClip() {
             {tab==="gallery"&&<>
               <button onClick={()=>setBookmarkOnly(b=>!b)}
                 className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl border transition-all flex-shrink-0 ${bookmarkOnly?"text-gray-900 border-transparent":"border-gray-200 text-gray-600 bg-white hover:bg-gray-50"}`}
-                style={bookmarkOnly?{background:"#00ff97"}:{}}>
+                style={bookmarkOnly?{background:"#FF8C00"}:{}}>
                 ★ {bookmarkCount}
               </button>
             </>}
 
             <button onClick={()=>setShowChannelFetch(true)}
               className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-xl text-gray-900 hover:opacity-80 transition-all flex-shrink-0"
-              style={{background:"#00ff97"}}>
+              style={{background:"#FF8C00"}}>
               📡 채널 수집
             </button>
             <button onClick={()=>setShowVideoAdd(true)}
