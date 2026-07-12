@@ -118,15 +118,15 @@ const LoginScreen = ({ onLogin }) => {
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{background:"#00ff97"}}>
-            <span className="text-gray-900 text-lg font-black">Z</span>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-3xl" style={{background:"#FF8C00"}}>
+            🍊
           </div>
           <div className="leading-none">
-            <span className="text-2xl font-black text-white tracking-tight">ZERO</span>
-            <span className="text-2xl font-black tracking-tight" style={{color:"#00ff97"}}>CLIP</span>
+            <span className="text-2xl font-black text-white tracking-tight">귤</span>
+            <span className="text-2xl font-black tracking-tight" style={{color:"#FF8C00"}}>박스</span>
           </div>
         </div>
-        <p className="text-center text-gray-400 text-sm mb-6">제로부터 시작하는 마케팅</p>
+        <p className="text-center text-gray-400 text-sm mb-6">귤쌤의 쇼츠 소재 리서치 툴</p>
         <div className={`bg-gray-900 rounded-3xl p-6 transition-all ${err?"ring-2 ring-red-500":""}`}>
           <label className="text-xs font-bold text-gray-400 block mb-2">비밀번호</label>
           <input
@@ -1856,7 +1856,7 @@ ${item.script?`\n📄 대본:\n${item.script}`:""}
   const download = ()=>{
     const blob = new Blob([text],{type:"text/plain;charset=utf-8"});
     const a = document.createElement("a"); a.href=URL.createObjectURL(blob);
-    a.download=`ZEROCLIP_기획안_${new Date().toLocaleDateString("ko")}.txt`; a.click();
+    a.download=`귤박스_기획안_${new Date().toLocaleDateString("ko")}.txt`; a.click();
   };
 
   return (
@@ -2465,12 +2465,12 @@ export default function ZeroClip() {
           {/* 1행 */}
           <div className="flex items-center gap-2 mb-3">
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{background:"#00ff97"}}>
-                <span className="text-gray-900 text-xs font-black">Z</span>
+              <div className="w-7 h-7 rounded-xl flex items-center justify-center text-lg" style={{background:"#FF8C00"}}>
+                🍊
               </div>
               <div className="leading-none">
-                <span className="text-sm font-black text-gray-900 tracking-tight">ZERO</span>
-                <span className="text-sm font-black tracking-tight" style={{color:"#00ff97"}}>CLIP</span>
+                <span className="text-sm font-black text-gray-900 tracking-tight">귤</span>
+                <span className="text-sm font-black tracking-tight" style={{color:"#FF8C00"}}>박스</span>
               </div>
             </div>
 
