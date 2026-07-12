@@ -760,7 +760,7 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel }) => {
                 <button onClick={()=>setStep("input")} className="text-xs font-bold text-blue-500">← 다시</button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            <div className="overflow-y-auto p-4 space-y-2" style={{maxHeight:"50vh"}}>
               {preview.map(card=>(
                 <div key={card.id} onClick={()=>toggleSel(card.id)}
                   className={`flex items-center gap-3 p-3 rounded-2xl border-2 cursor-pointer transition-all ${card._selected?"border-gray-900 bg-gray-50":"border-gray-100 hover:border-gray-200"}`}>
@@ -784,13 +784,12 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel }) => {
               {onRegisterChannel&&preview.length>0&&(
                 <button onClick={()=>{
                   addSelected();
-                  // channelId 추출 - preview 카드의 URL에서 또는 channelUrl에서
                   const extractedId = channelUrl.match(/channel\/(UC[\w-]+)/)?.[1] || channelUrl.match(/(UC[\w-]{22})/)?.[1] || "";
                   onRegisterChannel({id: extractedId, name:preview[0].channel, category:selectedCat, url:channelUrl});
                 }}
                   disabled={preview.filter(c=>c._selected).length===0}
                   className="w-full py-2.5 rounded-2xl text-sm font-bold text-blue-600 border-2 border-blue-200 hover:bg-blue-50 disabled:opacity-40">
-                  🔄 추가 + 레퍼런스 채널 등록 (이후 자동 업데이트)
+                  🔄 추가 + 레퍼런스 채널 등록 (새 영상 자동 업데이트)
                 </button>
               )}
             </div>
