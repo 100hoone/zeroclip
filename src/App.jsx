@@ -53,7 +53,23 @@ const getCardDays = (card) => {
 
 const calcDaysAgoText = (publishedAt) => {
   const d = Math.floor((Date.now()-new Date(publishedAt))/86400000);
-  return d===0?"오늘":d<=3?`${d}일 전`:d<=14?"1주일 전":d<=45?"1개월 전":d<=75?"2개월 전":d<=105?"3개월 전":d<=210?"6개월 전":d<=395?"1년 전":"2년 전";
+  if (d===0) return "오늘";
+  if (d===1) return "1일 전";
+  if (d<=6)  return `${d}일 전`;
+  if (d<=13) return "1주일 전";
+  if (d<=20) return "2주일 전";
+  if (d<=45) return "1개월 전";
+  if (d<=75) return "2개월 전";
+  if (d<=105) return "3개월 전";
+  if (d<=210) return "6개월 전";
+  if (d<=395) return "1년 전";
+  return "2년 전";
+};
+
+// 표시용 날짜 - publishedAt 있으면 실시간 계산, 없으면 저장된 텍스트
+const getDisplayDate = (card) => {
+  if (card?.publishedAt) return calcDaysAgoText(card.publishedAt);
+  return card?.daysAgo || "";
 };
 
 const isInPeriod = (card, period, from, to) => {
@@ -770,7 +786,7 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel }) => {
                   <img src={card.thumbnail} className="w-16 h-10 object-cover rounded-lg flex-shrink-0"/>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-gray-900 truncate">{card.title}</p>
-                    <p className="text-xs text-gray-400">{card.channel} · {card.views} · {card.daysAgo}</p>
+                    <p className="text-xs text-gray-400">{card.channel} · {card.views} · {getDisplayDate(card)}</p>
                   </div>
                   <div className="text-xs font-black text-gray-700">{card.multiplier}</div>
                 </div>
@@ -1039,7 +1055,7 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
                   <img src={card.thumbnail} className="w-16 h-10 object-cover rounded-lg flex-shrink-0"/>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-gray-900 truncate">{card.title}</p>
-                    <p className="text-xs text-gray-400">{card.channel} · {card.views} · {card.daysAgo}</p>
+                    <p className="text-xs text-gray-400">{card.channel} · {card.views} · {getDisplayDate(card)}</p>
                   </div>
                   <div className="text-xs font-black text-gray-700">{card.multiplier}</div>
                 </div>
@@ -1843,7 +1859,7 @@ const ExportModal = ({ items, onClose }) => {
 📺 채널: ${item.channel}
 👁 조회수: ${item.views}  배수: ${item.multiplier}
 🗂 카테고리: ${item.mainCat} > ${item.subCat||"-"}
-🕐 업로드: ${item.daysAgo}
+🕐 업로드: ${getDisplayDate(item)}
 🔗 URL: ${item.url}
 ${item.tags?.length?`🏷 태그: ${item.tags.join(", ")}`:""}
 ${item.memo?`✏️ 메모: ${item.memo}`:""}
@@ -2215,7 +2231,7 @@ const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, o
             <svg className="w-4 h-4 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
           </div>
         </div>
-        <div className="absolute bottom-2 left-2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-lg pointer-events-none">{item.daysAgo}</div>
+        <div className="absolute bottom-2 left-2 text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded-lg pointer-events-none">{getDisplayDate(item)}</div>
       </div>
       <div className="p-3">
         <h3 className="text-sm font-bold text-gray-900 leading-snug mb-1 line-clamp-2" style={{height:"2.5rem",overflow:"hidden"}}>{item.title}</h3>
