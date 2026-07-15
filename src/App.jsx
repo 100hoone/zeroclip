@@ -516,7 +516,7 @@ const MyViewsModal = ({ item, onClose, onSave }) => {
 // ─────────────────────────────────────────────
 // 설정 모달
 // ─────────────────────────────────────────────
-const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory, onAddSub, onRemoveSub, onFixDates }) => {
+const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory, onAddSub, onRemoveSub, onFixDates, onFixThumbnails }) => {
   const [key, setKey]         = useState(apiKey);
   const [gKey, setGKey]       = useState(geminiKey);
   const [showYt, setShowYt]   = useState(false);
@@ -653,9 +653,14 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
           <div className="bg-orange-50 rounded-2xl p-3 mb-4">
             <p className="text-xs font-bold text-orange-700 mb-1">📅 기간 필터 정확도 개선</p>
             <p className="text-xs text-orange-600 mb-2">기존 카드 날짜를 YouTube에서 가져와요. 기간 필터가 부정확하면 실행해주세요.</p>
-            <button onClick={()=>{onClose();setTimeout(()=>onFixDates(),100);}} className="text-xs font-black px-3 py-1.5 rounded-xl text-white" style={{background:"#f97316"}}>
-              🔧 카드 날짜 일괄 업데이트
-            </button>
+            <div className="flex gap-2 flex-wrap">
+              <button onClick={()=>{onClose();setTimeout(()=>onFixDates(),100);}} className="text-xs font-black px-3 py-1.5 rounded-xl text-white" style={{background:"#f97316"}}>
+                🔧 카드 날짜 일괄 업데이트
+              </button>
+              <button onClick={()=>{onClose();setTimeout(()=>onFixThumbnails(),100);}} className="text-xs font-black px-3 py-1.5 rounded-xl text-white bg-red-500 hover:bg-red-600">
+                🖼️ 썸네일 복구
+              </button>
+            </div>
           </div>
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-gray-500">취소</button>
@@ -2432,6 +2437,18 @@ export default function ZeroClip() {
     localStorage.setItem("zc_cards", JSON.stringify(allCards));
     alert(`✅ ${updated}개 카드 날짜 업데이트 완료!`);
   };
+
+  // 썸네일 복구
+  const fixThumbnails = () => {
+    const fixed = cards.map(c=>{
+      const videoId = c.url?.match(/(?:v=|shorts\/)([A-Za-z0-9_-]{11})/)?.[1];
+      if (!videoId) return c;
+      return {...c, thumbnail:`https://img.youtube.com/vi/${videoId}/mqdefault.jpg`};
+    });
+    setCards(fixed);
+    localStorage.setItem("zc_cards", JSON.stringify(fixed));
+    alert(`✅ ${fixed.length}개 카드 썸네일 복구 완료!`);
+  };
   const saveGeminiKey= key => { setGeminiKey(key); localStorage.setItem("gemini_api_key", key); };
   const addTag    = tag => { if (!allTags.includes(tag)) setAllTags(p=>[...p,tag]); };
   const removeTag = tag => { setAllTags(p=>p.filter(t=>t!==tag)); setCards(p=>p.map(c=>({...c,tags:c.tags?.filter(t=>t!==tag)||[]}))); };
@@ -2614,7 +2631,7 @@ export default function ZeroClip() {
       {catEditTarget    &&<CatEditModal      item={catEditTarget} onClose={()=>setCatEditTarget(null)} onSave={saveCat}/>}
       {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)} geminiKey={geminiKey}/>}
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
-      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub} onFixDates={fixCardDates}/>}
+      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub} onFixDates={fixCardDates} onFixThumbnails={fixThumbnails}/>}
       {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)} apiKey={apiKey}/>}
       {showCategoryFetch&&<CategoryAutoFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowCategoryFetch(false)}/>}
       {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowChannelFetch(false)}
