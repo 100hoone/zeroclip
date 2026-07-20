@@ -2101,7 +2101,7 @@ const Dashboard = ({ cards, allTags }) => {
               <a key={item.id} href={item.url} target="_blank" rel="noopener noreferrer"
                 className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors group cursor-pointer">
                 <span className={`text-sm font-black w-6 text-center flex-shrink-0 ${i<3?"text-yellow-500":"text-gray-400"}`}>{i+1}</span>
-                <img src={item.thumbnail||`https://picsum.photos/seed/${item.id}/80/60`} className="w-14 h-9 object-cover rounded-xl flex-shrink-0"/>
+                <img src={item.thumbnail||""} className="w-14 h-9 object-cover rounded-xl flex-shrink-0 bg-gray-200" onError={e=>{e.target.src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 60'%3E%3Crect width='80' height='60' fill='%23e5e7eb'/%3E%3Ctext x='40' y='35' text-anchor='middle' font-size='20'%3E📺%3C/text%3E%3C/svg%3E";}}/>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">{item.title}</p>
                   <p className="text-xs text-gray-400 mb-1">{item.channel} · {item.views}</p>
@@ -2216,7 +2216,7 @@ const VideoCard = ({ item, onSelect, isSelected, onBookmark, onMemo, onScript, o
       onClick={()=>onSelect(item.id)}
     >
       <div className="relative overflow-hidden" style={{height:"200px"}}>
-        <img src={item.thumbnail||`https://picsum.photos/seed/${item.id}/400/600`} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"/>
+        <img src={item.thumbnail||""} alt={item.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" onError={e=>{e.target.style.display="none"; e.target.nextSibling?.style&&(e.target.nextSibling.style.display="flex");}}/><div style={{display:"none"}} className="w-full h-full bg-gray-800 items-center justify-center flex-col gap-1 absolute inset-0"><span className="text-2xl">📺</span><p className="text-xs text-gray-400 text-center px-2 line-clamp-2">{item.channel}</p></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent"/>
         <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-sm text-white text-xs font-black px-2 py-1 rounded-lg">{item.multiplier||"—"}</div>
         <div className="absolute top-2 right-2 z-10" onClick={e=>e.stopPropagation()}>
