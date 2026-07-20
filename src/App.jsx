@@ -74,6 +74,8 @@ const getDisplayDate = (card) => {
 
 const isInPeriod = (card, period, from, to) => {
   if (period==="all") return true;
+  // publishedAt 없는 카드는 기간 필터에서 제외 (stale daysAgo 텍스트로 오인 방지)
+  if (!card.publishedAt) return false;
   const d = getCardDays(card);
   if (period==="today") return d===0;
   if (period==="week")  return d<=7;
@@ -81,16 +83,10 @@ const isInPeriod = (card, period, from, to) => {
   if (period==="year")  return d<=365;
   if (period==="custom") {
     if (!from&&!to) return true;
-    const pub = card.publishedAt ? new Date(card.publishedAt) : null;
-    if (pub) {
-      const fromTs = from ? new Date(from).getTime() : 0;
-      const toTs   = to   ? new Date(to+"T23:59:59").getTime() : Date.now();
-      return pub.getTime()>=fromTs && pub.getTime()<=toTs;
-    }
-    const now=new Date(); const itemDate=new Date(now); itemDate.setDate(now.getDate()-d);
-    if (from&&itemDate<new Date(from)) return false;
-    if (to&&itemDate>new Date(to+"T23:59:59")) return false;
-    return true;
+    const pub = new Date(card.publishedAt);
+    const fromTs = from ? new Date(from).getTime() : 0;
+    const toTs   = to   ? new Date(to+"T23:59:59").getTime() : Date.now();
+    return pub.getTime()>=fromTs && pub.getTime()<=toTs;
   }
   return true;
 };
