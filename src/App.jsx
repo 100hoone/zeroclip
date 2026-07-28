@@ -3,7 +3,8 @@ import { useState, useRef, useEffect, useMemo } from "react";
 // ─────────────────────────────────────────────
 // 상수 데이터
 // ─────────────────────────────────────────────
-const PASSWORD = "zeroclip2026";
+const DEFAULT_PASSWORD = "zeroclip2026";
+const getPassword = () => localStorage.getItem("zc_password") || DEFAULT_PASSWORD;
 
 const DEFAULT_TAXONOMY = {
   "전체":          { emoji:"🎯", color:"#374151", subs:[] },
@@ -123,7 +124,7 @@ const LoginScreen = ({ onLogin }) => {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState(false);
   const submit = () => {
-    if (pw === PASSWORD) { onLogin(); }
+    if (pw === getPassword()) { onLogin(); }
     else { setErr(true); setTimeout(()=>setErr(false),1500); }
   };
   return (
@@ -512,7 +513,7 @@ const MyViewsModal = ({ item, onClose, onSave }) => {
 // ─────────────────────────────────────────────
 // 설정 모달
 // ─────────────────────────────────────────────
-const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory, onAddSub, onRemoveSub, onFixDates, onFixThumbnails }) => {
+const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory, onAddSub, onRemoveSub, onFixDates, onFixThumbnails, onRecalcMultipliers, onChangePassword }) => {
   const [key, setKey]         = useState(apiKey);
   const [gKey, setGKey]       = useState(geminiKey);
   const [showYt, setShowYt]   = useState(false);
@@ -523,6 +524,8 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
   const [newCatColor, setNewCatColor] = useState("#E74C3C");
   const [expandedCat, setExpandedCat] = useState(null);
   const [newSub, setNewSub]           = useState("");
+  const [newPw, setNewPw]             = useState("");
+  const [showPw, setShowPw]           = useState(false);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto" onClick={e=>e.stopPropagation()}>
@@ -646,16 +649,35 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
             <p className="text-xs font-bold text-blue-700 mb-1">🔒 보안 안내</p>
             <p className="text-xs text-blue-600">모든 API 키는 이 브라우저에만 저장돼요. 서버로 전송되지 않아요.</p>
           </div>
-          <div className="bg-orange-50 rounded-2xl p-3 mb-4">
-            <p className="text-xs font-bold text-orange-700 mb-1">📅 기간 필터 정확도 개선</p>
-            <p className="text-xs text-orange-600 mb-2">기존 카드 날짜를 YouTube에서 가져와요. 기간 필터가 부정확하면 실행해주세요.</p>
+          <div className="bg-orange-50 rounded-2xl p-3 mb-3">
+            <p className="text-xs font-bold text-orange-700 mb-1">🛠️ 데이터 관리</p>
             <div className="flex gap-2 flex-wrap">
               <button onClick={()=>{onClose();setTimeout(()=>onFixDates(),100);}} className="text-xs font-black px-3 py-1.5 rounded-xl text-white" style={{background:"#f97316"}}>
-                🔧 카드 날짜 일괄 업데이트
+                🔧 날짜 일괄 업데이트
               </button>
-              <button onClick={()=>{onClose();setTimeout(()=>onFixThumbnails(),100);}} className="text-xs font-black px-3 py-1.5 rounded-xl text-white bg-red-500 hover:bg-red-600">
+              <button onClick={()=>{onClose();setTimeout(()=>onFixThumbnails(),100);}} className="text-xs font-black px-3 py-1.5 rounded-xl bg-red-500 text-white">
                 🖼️ 썸네일 복구
               </button>
+              <button onClick={()=>{onClose();setTimeout(()=>onRecalcMultipliers(),100);}} className="text-xs font-black px-3 py-1.5 rounded-xl bg-purple-500 text-white">
+                📊 배수 재계산
+              </button>
+            </div>
+          </div>
+
+          {/* 비밀번호 변경 */}
+          <div className="bg-gray-50 rounded-2xl p-4 mb-3">
+            <label className="text-xs font-black text-gray-600 block mb-2">🔑 비밀번호 변경</label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input type={showPw?"text":"password"} value={newPw} onChange={e=>setNewPw(e.target.value)}
+                  placeholder="새 비밀번호 입력"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 pr-12 outline-none"/>
+                <button onClick={()=>setShowPw(s=>!s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{showPw?"숨김":"표시"}</button>
+              </div>
+              <button onClick={()=>{
+                if(!newPw.trim()||newPw.length<4){alert("4자 이상 입력해주세요");return;}
+                onChangePassword(newPw.trim());setNewPw("");alert("✅ 비밀번호 변경됐어요!");
+              }} className="px-3 py-2.5 rounded-xl text-xs font-black text-gray-900 flex-shrink-0" style={{background:"#FF8C00"}}>변경</button>
             </div>
           </div>
           <div className="flex gap-2">
@@ -2445,6 +2467,37 @@ export default function ZeroClip() {
     localStorage.setItem("zc_cards", JSON.stringify(fixed));
     alert(`✅ ${fixed.length}개 카드 썸네일 복구 완료!`);
   };
+
+  // 배수 재계산 - 채널 평균 기준
+  const recalcMultipliers = () => {
+    if (!window.confirm("채널별 평균 조회수를 기준으로 배수를 재계산할게요.")) return;
+    // 채널별 평균 조회수 계산
+    const chAvg = {};
+    const chCards = {};
+    cards.forEach(c=>{
+      const views = toViewsNum(c.views);
+      if (!views) return;
+      if (!chCards[c.channel]) chCards[c.channel] = [];
+      chCards[c.channel].push(views);
+    });
+    Object.entries(chCards).forEach(([ch, viewsList])=>{
+      chAvg[ch] = viewsList.reduce((a,b)=>a+b,0)/viewsList.length;
+    });
+    // 배수 재계산
+    let updated = 0;
+    const fixed = cards.map(c=>{
+      const views = toViewsNum(c.views);
+      const avg = chAvg[c.channel];
+      if (!views || !avg || avg===0) return c;
+      const newMulti = `×${(views/avg).toFixed(1)}`;
+      if (newMulti !== c.multiplier) updated++;
+      return {...c, multiplier: newMulti};
+    });
+    setCards(fixed);
+    localStorage.setItem("zc_cards", JSON.stringify(fixed));
+    alert(`✅ ${updated}개 카드 배수 재계산 완료!`);
+  };
+
   const saveGeminiKey= key => { setGeminiKey(key); localStorage.setItem("gemini_api_key", key); };
   const addTag    = tag => { if (!allTags.includes(tag)) setAllTags(p=>[...p,tag]); };
   const removeTag = tag => { setAllTags(p=>p.filter(t=>t!==tag)); setCards(p=>p.map(c=>({...c,tags:c.tags?.filter(t=>t!==tag)||[]}))); };
@@ -2627,7 +2680,7 @@ export default function ZeroClip() {
       {catEditTarget    &&<CatEditModal      item={catEditTarget} onClose={()=>setCatEditTarget(null)} onSave={saveCat}/>}
       {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)} geminiKey={geminiKey}/>}
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
-      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub} onFixDates={fixCardDates} onFixThumbnails={fixThumbnails}/>}
+      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub} onFixDates={fixCardDates} onFixThumbnails={fixThumbnails} onRecalcMultipliers={recalcMultipliers} onChangePassword={pw=>{localStorage.setItem("zc_password",pw);}}/>}
       {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)} apiKey={apiKey}/>}
       {showCategoryFetch&&<CategoryAutoFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowCategoryFetch(false)}/>}
       {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowChannelFetch(false)}
