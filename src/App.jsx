@@ -1131,9 +1131,17 @@ const GukbapTab = () => {
   const fetchList = async () => {
     setLoading(true);
     try {
-      const res = await fetch(RAW_URL + "?t=" + Date.now());
+      // GitHub Contents API - 항상 최신 데이터 반환 (캐시 없음)
+      const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
+        headers: { Accept: "application/vnd.github.v3+json", "Cache-Control": "no-cache" }
+      });
       const data = await res.json();
-      setList(Array.isArray(data)?data:[]);
+      if (data.content) {
+        const decoded = JSON.parse(atob(data.content.replace(/\n/g, "")));
+        setList(Array.isArray(decoded) ? decoded : []);
+      } else {
+        setList([]);
+      }
     } catch { setError("목록을 불러올 수 없어요"); }
     setLoading(false);
   };
