@@ -1103,6 +1103,251 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
 // ─────────────────────────────────────────────
 // 채널 탭
 // ─────────────────────────────────────────────
+// 국밥리스트 탭
+// ─────────────────────────────────────────────
+const SAFETY_COLORS = { "안전": "#22c55e", "주의": "#f59e0b", "위험": "#ef4444" };
+const GENRES = ["범죄스릴러","코미디","로맨스","드라마","예능","역사","액션","공포","SF","다큐","기타"];
+
+const GukbapTab = () => {
+  const REPO = "100hoone/zeroclip";
+  const FILE = "gukbap.json";
+  const RAW_URL = `https://raw.githubusercontent.com/${REPO}/main/${FILE}`;
+
+  const [list, setList]         = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState("");
+  const [isAdmin, setIsAdmin]   = useState(false);
+  const [adminPw, setAdminPw]   = useState("");
+  const [adminToken, setAdminToken] = useState(()=>localStorage.getItem("gb_admin_token")||"");
+  const [showLogin, setShowLogin] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [saving, setSaving]     = useState(false);
+  const [filterGenre, setFilterGenre] = useState("전체");
+  const [form, setForm] = useState({ title:"", genre:"범죄스릴러", producer:"", distributor:"", platform:"", safety:"안전", memo:"", thumbnail:"" });
+
+  useEffect(()=>{ fetchList(); },[]);
+
+  const fetchList = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(RAW_URL + "?t=" + Date.now());
+      const data = await res.json();
+      setList(Array.isArray(data)?data:[]);
+    } catch { setError("목록을 불러올 수 없어요"); }
+    setLoading(false);
+  };
+
+  const saveToGitHub = async (newList) => {
+    // 현재 파일의 SHA 가져오기
+    const fileRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
+      headers: { Authorization: `token ${adminToken}`, Accept: "application/vnd.github.v3+json" }
+    });
+    const fileData = await fileRes.json();
+    if (!fileRes.ok) throw new Error(fileData.message||"파일 조회 실패");
+    // 저장
+    const saveRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
+      method: "PUT",
+      headers: { Authorization: `token ${adminToken}`, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "Update gukbap list",
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(newList, null, 2)))),
+        sha: fileData.sha,
+        branch: "main"
+      })
+    });
+    if (!saveRes.ok) { const d = await saveRes.json(); throw new Error(d.message||"저장 실패"); }
+    return newList;
+  };
+
+  const handleLogin = () => {
+    if (adminPw !== "100stu!") { alert("비밀번호가 틀렸어요"); return; }
+    if (!adminToken.trim()) { alert("GitHub 토큰을 입력해주세요"); return; }
+    localStorage.setItem("gb_admin_token", adminToken);
+    setIsAdmin(true); setShowLogin(false);
+  };
+
+  const adminAction = async (action, item, id) => {
+    setSaving(true);
+    try {
+      let newList = [...list];
+      if (action === "add") {
+        newList.unshift({ id:Date.now(), ...item, addedAt:new Date().toISOString() });
+      } else if (action === "edit") {
+        const idx = newList.findIndex(i=>i.id===id);
+        if (idx>=0) newList[idx] = {...newList[idx], ...item};
+      } else if (action === "delete") {
+        newList = newList.filter(i=>i.id!==id);
+      }
+      await saveToGitHub(newList);
+      setList(newList);
+      setShowForm(false); setEditItem(null);
+      setForm({ title:"", genre:"범죄스릴러", producer:"", distributor:"", platform:"", safety:"안전", memo:"", thumbnail:"" });
+      alert("✅ 저장됐어요!");
+    } catch(e) { alert("오류: "+e.message); }
+    setSaving(false);
+  };
+
+  const openEdit = (item) => {
+    setEditItem(item);
+    setForm({ title:item.title, genre:item.genre, producer:item.producer||"", distributor:item.distributor||"", platform:item.platform||"", safety:item.safety, memo:item.memo||"", thumbnail:item.thumbnail||"" });
+    setShowForm(true);
+  };
+
+  const filtered = filterGenre==="전체" ? list : list.filter(i=>i.genre===filterGenre);
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-5">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div>
+          <h2 className="text-lg font-black text-gray-900">🍚 국밥리스트</h2>
+          <p className="text-xs text-gray-400 mt-0.5">제작해도 안전한 작품 모음 · 관리자가 직접 선별</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={fetchList} className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200">🔄 새로고침</button>
+          {isAdmin ? (
+            <>
+              <button onClick={()=>{setEditItem(null);setForm({title:"",genre:"범죄스릴러",producer:"",distributor:"",platform:"",safety:"안전",memo:"",thumbnail:""});setShowForm(true);}}
+                className="text-xs font-black px-3 py-1.5 rounded-xl text-gray-900" style={{background:"#FF8C00"}}>
+                + 작품 추가
+              </button>
+              <button onClick={()=>{setIsAdmin(false);}} className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-500">로그아웃</button>
+            </>
+          ) : (
+            <button onClick={()=>setShowLogin(true)} className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-500">관리자</button>
+          )}
+        </div>
+      </div>
+
+      {/* 관리자 로그인 */}
+      {showLogin&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={()=>setShowLogin(false)}>
+          <div className="bg-white rounded-3xl p-6 w-80 shadow-2xl space-y-3" onClick={e=>e.stopPropagation()}>
+            <h3 className="text-sm font-black text-gray-900">🔐 관리자 로그인</h3>
+            <input type="password" value={adminPw} onChange={e=>setAdminPw(e.target.value)}
+              placeholder="관리자 비밀번호" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none"/>
+            <input type="password" value={adminToken} onChange={e=>setAdminToken(e.target.value)}
+              placeholder="GitHub 토큰 (ghp_...)" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none font-mono"/>
+            <p className="text-xs text-gray-400">GitHub 토큰은 이 브라우저에만 저장돼요</p>
+            <div className="flex gap-2">
+              <button onClick={handleLogin} className="flex-1 py-2.5 rounded-xl text-sm font-black text-gray-900" style={{background:"#FF8C00"}}>입장</button>
+              <button onClick={()=>setShowLogin(false)} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-500 bg-gray-100">취소</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 작품 추가/수정 폼 */}
+      {showForm&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={()=>setShowForm(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e=>e.stopPropagation()}>
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-black text-gray-900">{editItem?"작품 수정":"작품 추가"}</h3>
+              <button onClick={()=>setShowForm(false)} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 text-xs">✕</button>
+            </div>
+            <div className="p-5 space-y-3">
+              {[
+                {label:"작품명 *", key:"title", placeholder:"예: 더 글로리"},
+                {label:"제작사", key:"producer", placeholder:"예: 화앤담픽처스"},
+                {label:"배급사", key:"distributor", placeholder:"예: 넷플릭스"},
+                {label:"플랫폼", key:"platform", placeholder:"예: Netflix, 웨이브 등"},
+                {label:"썸네일 URL (선택)", key:"thumbnail", placeholder:"https://..."},
+              ].map(f=>(
+                <div key={f.key}>
+                  <label className="text-xs font-black text-gray-600 block mb-1">{f.label}</label>
+                  <input value={form[f.key]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))}
+                    placeholder={f.placeholder} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                </div>
+              ))}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-black text-gray-600 block mb-1">장르</label>
+                  <select value={form.genre} onChange={e=>setForm(p=>({...p,genre:e.target.value}))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none bg-white">
+                    {GENRES.map(g=><option key={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-black text-gray-600 block mb-1">안전도</label>
+                  <select value={form.safety} onChange={e=>setForm(p=>({...p,safety:e.target.value}))}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none bg-white">
+                    {["안전","주의","위험"].map(s=><option key={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-black text-gray-600 block mb-1">메모</label>
+                <textarea value={form.memo} onChange={e=>setForm(p=>({...p,memo:e.target.value}))}
+                  placeholder="특이사항, 주의점 등" rows={2}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none resize-none"/>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button onClick={()=>adminAction(editItem?"edit":"add", form, editItem?.id)} disabled={!form.title.trim()||saving}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-black text-gray-900 disabled:opacity-40" style={{background:"#FF8C00"}}>
+                  {saving?"저장 중...":editItem?"수정 완료":"추가"}
+                </button>
+                {editItem&&(
+                  <button onClick={()=>{if(window.confirm("삭제할까요?"))adminAction("delete",null,editItem.id);}} disabled={saving}
+                    className="px-4 py-2.5 rounded-xl text-sm font-bold text-red-500 bg-red-50">삭제</button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 장르 필터 */}
+      <div className="flex gap-1.5 flex-wrap mb-4">
+        {["전체",...GENRES].map(g=>(
+          <button key={g} onClick={()=>setFilterGenre(g)}
+            className="text-xs px-3 py-1.5 rounded-xl font-bold transition-all"
+            style={filterGenre===g?{background:"#FF8C00",color:"white"}:{background:"#f3f4f6",color:"#6b7280"}}>
+            {g}{g==="전체"?` ${list.length}`:list.filter(i=>i.genre===g).length>0?` ${list.filter(i=>i.genre===g).length}`:""}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-20"><div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-orange-400 animate-spin"/></div>
+      ) : error ? (
+        <div className="text-center py-20 text-gray-400">{error}</div>
+      ) : filtered.length===0 ? (
+        <div className="flex flex-col items-center py-20 text-gray-300">
+          <span className="text-5xl mb-3">🍚</span>
+          <p className="text-gray-400 font-bold">아직 등록된 작품이 없어요</p>
+        </div>
+      ) : (
+        <div className="grid gap-4" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",alignItems:"start"}}>
+          {filtered.map(item=>(
+            <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              {item.thumbnail ? (
+                <img src={item.thumbnail} className="w-full h-36 object-cover"/>
+              ) : (
+                <div className="w-full h-36 bg-gray-100 flex items-center justify-center text-4xl">🎬</div>
+              )}
+              <div className="p-3">
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <p className="text-sm font-black text-gray-900 leading-snug">{item.title}</p>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 text-white"
+                    style={{backgroundColor:SAFETY_COLORS[item.safety]||"#22c55e"}}>{item.safety}</span>
+                </div>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">{item.genre}</span>
+                  {item.producer&&<span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 font-medium">제작 {item.producer}</span>}
+                  {item.distributor&&<span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">배급 {item.distributor}</span>}
+                  {item.platform&&<span className="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 font-medium">{item.platform}</span>}
+                </div>
+                {item.memo&&<p className="text-xs text-gray-500 leading-relaxed">{item.memo}</p>}
+                {isAdmin&&<button onClick={()=>openEdit(item)} className="mt-2 w-full py-1.5 rounded-xl text-xs font-bold text-gray-500 bg-gray-50 hover:bg-gray-100">✏️ 수정</button>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatChange, onFilterChannel }) => {
   const [selectedCh, setSelectedCh]     = useState(null);
   const [editingCh, setEditingCh]       = useState(null);
@@ -2595,7 +2840,7 @@ export default function ZeroClip() {
 
           {/* 탭 */}
           <div className="flex gap-1 mb-0">
-            {[{key:"gallery",label:"🗂 갤러리"},{key:"channels",label:"📡 채널"},{key:"dashboard",label:"📊 대시보드"},{key:"mychannel",label:"📺 내 채널"}].map(t=>(
+            {[{key:"gallery",label:"🗂 갤러리"},{key:"channels",label:"📡 채널"},{key:"gukbap",label:"🍚 국밥리스트"},{key:"dashboard",label:"📊 대시보드"},{key:"mychannel",label:"📺 내 채널"}].map(t=>(
               <button key={t.key} onClick={()=>setTab(t.key)}
                 className={`px-4 py-2 text-xs font-bold rounded-t-xl transition-all ${tab===t.key?"bg-gray-900 text-white":"text-gray-500 hover:text-gray-700"}`}>
                 {t.label}
@@ -2627,7 +2872,9 @@ export default function ZeroClip() {
       </div>
 
       {/* ── 탭 콘텐츠 ── */}
-      {tab==="dashboard" ? (
+      {tab==="gukbap" ? (
+        <GukbapTab/>
+      ) : tab==="dashboard" ? (
         <Dashboard cards={filtered} allTags={allTags}/>
       ) : tab==="mychannel" ? (
         <MyChannelTab refCards={cards} apiKey={apiKey} geminiKey={geminiKey}/>
