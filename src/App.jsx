@@ -1247,8 +1247,8 @@ const GukbapTab = () => {
 
       {/* 작품 추가/수정 폼 */}
       {showForm&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={()=>setShowForm(false)}>
-          <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e=>e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-sm font-black text-gray-900">{editItem?"작품 수정":"작품 추가"}</h3>
               <button onClick={()=>setShowForm(false)} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 text-xs">✕</button>
