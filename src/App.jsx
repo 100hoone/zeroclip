@@ -1111,19 +1111,18 @@ const GENRES = ["범죄스릴러","코미디","로맨스","드라마","예능","
 const GukbapTab = () => {
   const REPO = "100hoone/zeroclip";
   const FILE = "gukbap.json";
-  const RAW_URL = `https://raw.githubusercontent.com/${REPO}/main/${FILE}`;
 
-  const [list, setList]         = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState("");
-  const [isAdmin, setIsAdmin]   = useState(false);
-  const [adminPw, setAdminPw]   = useState("");
+  const [list, setList]           = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [isAdmin, setIsAdmin]     = useState(false);
+  const [adminPw, setAdminPw]     = useState("");
   const [adminToken, setAdminToken] = useState(()=>localStorage.getItem("gb_admin_token")||"");
   const [showLogin, setShowLogin] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [editItem, setEditItem] = useState(null);
-  const [saving, setSaving]     = useState(false);
+  const [showForm, setShowForm]   = useState(false);
+  const [editItem, setEditItem]   = useState(null);
+  const [saving, setSaving]       = useState(false);
   const [filterGenre, setFilterGenre] = useState("전체");
+  const [selected, setSelected]   = useState(null);
   const [form, setForm] = useState({ title:"", genre:"범죄스릴러", producer:"", distributor:"", platform:"", safety:"안전", memo:"", thumbnail:"" });
 
   useEffect(()=>{ fetchList(); },[]);
@@ -1131,38 +1130,31 @@ const GukbapTab = () => {
   const fetchList = async () => {
     setLoading(true);
     try {
-      // GitHub Contents API - 항상 최신 데이터 반환 (캐시 없음)
       const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
         headers: { Accept: "application/vnd.github.v3+json", "Cache-Control": "no-cache" }
       });
       const data = await res.json();
       if (data.content) {
-        // 한국어 포함 UTF-8 올바르게 디코딩
-        const decoded = JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g, "")))));
-        setList(Array.isArray(decoded) ? decoded : []);
-      } else {
-        setList([]);
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,"")))));
+        setList(Array.isArray(decoded)?decoded:[]);
       }
-    } catch { setError("목록을 불러올 수 없어요"); }
+    } catch(e) { console.error(e); }
     setLoading(false);
   };
 
   const saveToGitHub = async (newList) => {
-    // 현재 파일의 SHA 가져오기
     const fileRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
       headers: { Authorization: `token ${adminToken}`, Accept: "application/vnd.github.v3+json" }
     });
     const fileData = await fileRes.json();
     if (!fileRes.ok) throw new Error(fileData.message||"파일 조회 실패");
-    // 저장
     const saveRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
       method: "PUT",
       headers: { Authorization: `token ${adminToken}`, Accept: "application/vnd.github.v3+json", "Content-Type": "application/json" },
       body: JSON.stringify({
         message: "Update gukbap list",
         content: btoa(unescape(encodeURIComponent(JSON.stringify(newList, null, 2)))),
-        sha: fileData.sha,
-        branch: "main"
+        sha: fileData.sha, branch: "main"
       })
     });
     if (!saveRes.ok) { const d = await saveRes.json(); throw new Error(d.message||"저장 실패"); }
@@ -1180,18 +1172,12 @@ const GukbapTab = () => {
     setSaving(true);
     try {
       let newList = [...list];
-      if (action === "add") {
-        newList.unshift({ id:Date.now(), ...item, addedAt:new Date().toISOString() });
-      } else if (action === "edit") {
-        const idx = newList.findIndex(i=>i.id===id);
-        if (idx>=0) newList[idx] = {...newList[idx], ...item};
-      } else if (action === "delete") {
-        newList = newList.filter(i=>i.id!==id);
-      }
+      if (action==="add") newList.unshift({ id:Date.now(), ...item, addedAt:new Date().toISOString() });
+      else if (action==="edit") { const i=newList.findIndex(x=>x.id===id); if(i>=0) newList[i]={...newList[i],...item}; }
+      else if (action==="delete") newList=newList.filter(x=>x.id!==id);
       await saveToGitHub(newList);
-      setList(newList);
-      setShowForm(false); setEditItem(null);
-      setForm({ title:"", genre:"범죄스릴러", producer:"", distributor:"", platform:"", safety:"안전", memo:"", thumbnail:"" });
+      setList(newList); setShowForm(false); setEditItem(null);
+      setForm({title:"",genre:"범죄스릴러",producer:"",distributor:"",platform:"",safety:"안전",memo:"",thumbnail:""});
       alert("✅ 저장됐어요!");
     } catch(e) { alert("오류: "+e.message); }
     setSaving(false);
@@ -1199,48 +1185,136 @@ const GukbapTab = () => {
 
   const openEdit = (item) => {
     setEditItem(item);
-    setForm({ title:item.title, genre:item.genre, producer:item.producer||"", distributor:item.distributor||"", platform:item.platform||"", safety:item.safety, memo:item.memo||"", thumbnail:item.thumbnail||"" });
+    setForm({title:item.title,genre:item.genre,producer:item.producer||"",distributor:item.distributor||"",platform:item.platform||"",safety:item.safety,memo:item.memo||"",thumbnail:item.thumbnail||""});
     setShowForm(true);
   };
 
   const filtered = filterGenre==="전체" ? list : list.filter(i=>i.genre===filterGenre);
+  const genres = [...new Set(list.map(i=>i.genre))].filter(Boolean);
+  const SAFETY_COLOR = {"안전":"#22c55e","주의":"#f59e0b","위험":"#ef4444"};
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-5">
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+    <div style={{background:"#111",minHeight:"100vh"}} className="px-6 py-6">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-black text-gray-900">🍚 국밥리스트</h2>
-          <p className="text-xs text-gray-400 mt-0.5">제작해도 안전한 작품 모음 · 관리자가 직접 선별</p>
+          <h2 className="text-xl font-black text-white">🍚 국밥리스트</h2>
+          <p className="text-xs text-gray-500 mt-0.5">귤쌤이 직접 선별한 제작 안전 작품 모음</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={fetchList} className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-500 hover:bg-gray-200">🔄 새로고침</button>
+          <button onClick={fetchList} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-400 hover:text-white transition-colors">🔄</button>
           {isAdmin ? (
             <>
               <button onClick={()=>{setEditItem(null);setForm({title:"",genre:"범죄스릴러",producer:"",distributor:"",platform:"",safety:"안전",memo:"",thumbnail:""});setShowForm(true);}}
-                className="text-xs font-black px-3 py-1.5 rounded-xl text-gray-900" style={{background:"#FF8C00"}}>
+                className="text-xs font-black px-4 py-1.5 rounded-xl text-black" style={{background:"#FF8C00"}}>
                 + 작품 추가
               </button>
-              <button onClick={()=>{setIsAdmin(false);}} className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-500">로그아웃</button>
+              <button onClick={()=>setIsAdmin(false)} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-500 hover:text-white transition-colors">로그아웃</button>
             </>
           ) : (
-            <button onClick={()=>setShowLogin(true)} className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-500">관리자</button>
+            <button onClick={()=>setShowLogin(true)} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-600 hover:text-white transition-colors">관리자</button>
           )}
         </div>
       </div>
 
+      {/* 장르 탭 */}
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {["전체",...genres].map(g=>{
+          const cnt = g==="전체"?list.length:list.filter(i=>i.genre===g).length;
+          return (
+            <button key={g} onClick={()=>setFilterGenre(g)}
+              className="text-sm font-bold px-4 py-1.5 rounded-full transition-all"
+              style={filterGenre===g?{background:"#FF8C00",color:"#000"}:{background:"#222",color:"#888"}}>
+              {g}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 카드 그리드 */}
+      {loading ? (
+        <div className="flex justify-center py-20"><div className="w-8 h-8 rounded-full border-4 border-gray-700 border-t-orange-400 animate-spin"/></div>
+      ) : filtered.length===0 ? (
+        <div className="flex flex-col items-center py-24 text-gray-600">
+          <span className="text-5xl mb-3">🍚</span>
+          <p className="font-bold">아직 등록된 작품이 없어요</p>
+        </div>
+      ) : (
+        <div className="grid gap-5" style={{gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))"}}>
+          {filtered.map(item=>(
+            <div key={item.id} className="group cursor-pointer" onClick={()=>setSelected(selected?.id===item.id?null:item)}>
+              {/* 포스터 */}
+              <div className="relative rounded-2xl overflow-hidden mb-3" style={{aspectRatio:"2/3"}}>
+                {item.thumbnail ? (
+                  <img src={item.thumbnail} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"/>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-5xl" style={{background:"#222"}}>🎬</div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"/>
+                {/* 배지 */}
+                <div className="absolute top-2 left-2 flex flex-col gap-1">
+                  {item.distributor&&<span className="text-xs font-black px-2 py-0.5 rounded-lg text-white" style={{background:"rgba(0,0,0,0.7)"}}>{item.distributor}</span>}
+                </div>
+                <div className="absolute top-2 right-2">
+                  <span className="text-xs font-black px-2 py-0.5 rounded-lg text-white" style={{background:SAFETY_COLOR[item.safety]||"#22c55e"}}>{item.safety}</span>
+                </div>
+                {/* 호버 오버레이 */}
+                {isAdmin&&(
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                    <button onClick={e=>{e.stopPropagation();openEdit(item);}} className="text-xs font-black px-3 py-1.5 rounded-xl text-black" style={{background:"#FF8C00"}}>✏️ 수정</button>
+                  </div>
+                )}
+              </div>
+              {/* 정보 */}
+              <p className="text-sm font-black text-white leading-snug mb-1">{item.title}</p>
+              {item.producer&&<p className="text-xs text-gray-500">제작: {item.producer}</p>}
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{background:"#222",color:"#888"}}>{item.genre}</span>
+                {item.platform&&<span className="text-xs text-gray-600">{item.platform}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 선택된 작품 상세 (하단 슬라이드) */}
+      {selected&&(
+        <div className="fixed inset-x-0 bottom-0 z-40 p-4" style={{background:"linear-gradient(to top, #111 80%, transparent)"}}>
+          <div className="max-w-2xl mx-auto bg-gray-900 rounded-3xl p-5 shadow-2xl border border-gray-800">
+            <div className="flex gap-4">
+              {selected.thumbnail&&<img src={selected.thumbnail} className="w-16 h-24 object-cover rounded-xl flex-shrink-0"/>}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-base font-black text-white">{selected.title}</p>
+                  <button onClick={()=>setSelected(null)} className="text-gray-600 hover:text-white text-lg flex-shrink-0">✕</button>
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-1.5 mb-2">
+                  <span className="text-xs font-black px-2 py-0.5 rounded-full text-white" style={{background:SAFETY_COLOR[selected.safety]||"#22c55e"}}>한줄평: {selected.safety}</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full text-gray-400" style={{background:"#222"}}>{selected.genre}</span>
+                  {selected.platform&&<span className="text-xs px-2 py-0.5 rounded-full text-gray-400" style={{background:"#222"}}>{selected.platform}</span>}
+                </div>
+                {selected.producer&&<p className="text-xs text-gray-500">제작사: {selected.producer}</p>}
+                {selected.distributor&&<p className="text-xs text-gray-500">배급사: {selected.distributor}</p>}
+                {selected.memo&&<p className="text-xs text-gray-400 mt-2 leading-relaxed">{selected.memo}</p>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 관리자 로그인 */}
       {showLogin&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={()=>setShowLogin(false)}>
-          <div className="bg-white rounded-3xl p-6 w-80 shadow-2xl space-y-3" onClick={e=>e.stopPropagation()}>
-            <h3 className="text-sm font-black text-gray-900">🔐 관리자 로그인</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={()=>setShowLogin(false)}>
+          <div className="rounded-3xl p-6 w-80 shadow-2xl space-y-3 border border-gray-800" style={{background:"#1a1a1a"}} onClick={e=>e.stopPropagation()}>
+            <h3 className="text-sm font-black text-white">🔐 관리자 로그인</h3>
             <input type="password" value={adminPw} onChange={e=>setAdminPw(e.target.value)}
-              placeholder="관리자 비밀번호" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none"/>
+              placeholder="관리자 비밀번호" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-white" style={{background:"#222",border:"1px solid #333"}}/>
             <input type="password" value={adminToken} onChange={e=>setAdminToken(e.target.value)}
-              placeholder="GitHub 토큰 (ghp_...)" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none font-mono"/>
-            <p className="text-xs text-gray-400">GitHub 토큰은 이 브라우저에만 저장돼요</p>
+              placeholder="GitHub 토큰 (ghp_...)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-white font-mono" style={{background:"#222",border:"1px solid #333"}}/>
+            <p className="text-xs text-gray-600">토큰은 이 브라우저에만 저장돼요</p>
             <div className="flex gap-2">
-              <button onClick={handleLogin} className="flex-1 py-2.5 rounded-xl text-sm font-black text-gray-900" style={{background:"#FF8C00"}}>입장</button>
-              <button onClick={()=>setShowLogin(false)} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-500 bg-gray-100">취소</button>
+              <button onClick={handleLogin} className="flex-1 py-2.5 rounded-xl text-sm font-black text-black" style={{background:"#FF8C00"}}>입장</button>
+              <button onClick={()=>setShowLogin(false)} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-500" style={{background:"#222"}}>취소</button>
             </div>
           </div>
         </div>
@@ -1248,11 +1322,11 @@ const GukbapTab = () => {
 
       {/* 작품 추가/수정 폼 */}
       {showForm&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-              <h3 className="text-sm font-black text-gray-900">{editItem?"작품 수정":"작품 추가"}</h3>
-              <button onClick={()=>setShowForm(false)} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 text-xs">✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:"rgba(0,0,0,0.8)"}}>
+          <div className="rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-800" style={{background:"#1a1a1a"}}>
+            <div className="p-5 border-b flex items-center justify-between" style={{borderColor:"#333"}}>
+              <h3 className="text-sm font-black text-white">{editItem?"작품 수정":"작품 추가"}</h3>
+              <button onClick={()=>setShowForm(false)} className="w-7 h-7 flex items-center justify-center rounded-full text-gray-500" style={{background:"#333"}}>✕</button>
             </div>
             <div className="p-5 space-y-3">
               {[
@@ -1260,97 +1334,46 @@ const GukbapTab = () => {
                 {label:"제작사", key:"producer", placeholder:"예: 화앤담픽처스"},
                 {label:"배급사", key:"distributor", placeholder:"예: 넷플릭스"},
                 {label:"플랫폼", key:"platform", placeholder:"예: Netflix, 웨이브 등"},
-                {label:"썸네일 URL (선택)", key:"thumbnail", placeholder:"https://..."},
+                {label:"썸네일 URL", key:"thumbnail", placeholder:"https://..."},
               ].map(f=>(
                 <div key={f.key}>
-                  <label className="text-xs font-black text-gray-600 block mb-1">{f.label}</label>
+                  <label className="text-xs font-black text-gray-400 block mb-1">{f.label}</label>
                   <input value={form[f.key]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))}
-                    placeholder={f.placeholder} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none"/>
+                    placeholder={f.placeholder} className="w-full rounded-xl px-3 py-2 text-sm outline-none text-white placeholder-gray-600" style={{background:"#222",border:"1px solid #333"}}/>
                 </div>
               ))}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-black text-gray-600 block mb-1">장르</label>
+                  <label className="text-xs font-black text-gray-400 block mb-1">장르</label>
                   <select value={form.genre} onChange={e=>setForm(p=>({...p,genre:e.target.value}))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none bg-white">
+                    className="w-full rounded-xl px-3 py-2 text-sm outline-none text-white" style={{background:"#222",border:"1px solid #333"}}>
                     {GENRES.map(g=><option key={g}>{g}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-black text-gray-600 block mb-1">안전도</label>
+                  <label className="text-xs font-black text-gray-400 block mb-1">안전도</label>
                   <select value={form.safety} onChange={e=>setForm(p=>({...p,safety:e.target.value}))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none bg-white">
+                    className="w-full rounded-xl px-3 py-2 text-sm outline-none text-white" style={{background:"#222",border:"1px solid #333"}}>
                     {["안전","주의","위험"].map(s=><option key={s}>{s}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-black text-gray-600 block mb-1">메모</label>
+                <label className="text-xs font-black text-gray-400 block mb-1">메모</label>
                 <textarea value={form.memo} onChange={e=>setForm(p=>({...p,memo:e.target.value}))}
-                  placeholder="특이사항, 주의점 등" rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none resize-none"/>
+                  placeholder="특이사항 등" rows={3}
+                  className="w-full rounded-xl px-3 py-2 text-sm outline-none resize-none text-white placeholder-gray-600" style={{background:"#222",border:"1px solid #333"}}/>
               </div>
               <div className="flex gap-2 pt-1">
-                <button onClick={()=>adminAction(editItem?"edit":"add", form, editItem?.id)} disabled={!form.title.trim()||saving}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-black text-gray-900 disabled:opacity-40" style={{background:"#FF8C00"}}>
+                <button onClick={()=>adminAction(editItem?"edit":"add",form,editItem?.id)} disabled={!form.title.trim()||saving}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-black text-black disabled:opacity-40" style={{background:"#FF8C00"}}>
                   {saving?"저장 중...":editItem?"수정 완료":"추가"}
                 </button>
-                {editItem&&(
-                  <button onClick={()=>{if(window.confirm("삭제할까요?"))adminAction("delete",null,editItem.id);}} disabled={saving}
-                    className="px-4 py-2.5 rounded-xl text-sm font-bold text-red-500 bg-red-50">삭제</button>
-                )}
+                {editItem&&<button onClick={()=>{if(window.confirm("삭제할까요?"))adminAction("delete",null,editItem.id);}} disabled={saving}
+                  className="px-4 py-2.5 rounded-xl text-sm font-bold text-red-400" style={{background:"#2a1010"}}>삭제</button>}
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* 장르 필터 */}
-      <div className="flex gap-1.5 flex-wrap mb-4">
-        {["전체",...GENRES].map(g=>(
-          <button key={g} onClick={()=>setFilterGenre(g)}
-            className="text-xs px-3 py-1.5 rounded-xl font-bold transition-all"
-            style={filterGenre===g?{background:"#FF8C00",color:"white"}:{background:"#f3f4f6",color:"#6b7280"}}>
-            {g}{g==="전체"?` ${list.length}`:list.filter(i=>i.genre===g).length>0?` ${list.filter(i=>i.genre===g).length}`:""}
-          </button>
-        ))}
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-20"><div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-orange-400 animate-spin"/></div>
-      ) : error ? (
-        <div className="text-center py-20 text-gray-400">{error}</div>
-      ) : filtered.length===0 ? (
-        <div className="flex flex-col items-center py-20 text-gray-300">
-          <span className="text-5xl mb-3">🍚</span>
-          <p className="text-gray-400 font-bold">아직 등록된 작품이 없어요</p>
-        </div>
-      ) : (
-        <div className="grid gap-4" style={{gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",alignItems:"start"}}>
-          {filtered.map(item=>(
-            <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-              {item.thumbnail ? (
-                <img src={item.thumbnail} className="w-full object-cover" style={{height:"280px", objectPosition:"top"}}/>
-              ) : (
-                <div className="w-full flex items-center justify-center text-4xl" style={{height:"280px",background:"#f3f4f6"}}>🎬</div>
-              )}
-              <div className="p-3">
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <p className="text-sm font-black text-gray-900 leading-snug">{item.title}</p>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 text-white"
-                    style={{backgroundColor:SAFETY_COLORS[item.safety]||"#22c55e"}}>{item.safety}</span>
-                </div>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">{item.genre}</span>
-                  {item.producer&&<span className="text-xs px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 font-medium">제작 {item.producer}</span>}
-                  {item.distributor&&<span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">배급 {item.distributor}</span>}
-                  {item.platform&&<span className="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-600 font-medium">{item.platform}</span>}
-                </div>
-                {item.memo&&<p className="text-xs text-gray-500 leading-relaxed">{item.memo}</p>}
-                {isAdmin&&<button onClick={()=>openEdit(item)} className="mt-2 w-full py-1.5 rounded-xl text-xs font-bold text-gray-500 bg-gray-50 hover:bg-gray-100">✏️ 수정</button>}
-              </div>
-            </div>
-          ))}
         </div>
       )}
     </div>
