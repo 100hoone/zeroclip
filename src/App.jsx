@@ -1137,7 +1137,8 @@ const GukbapTab = () => {
       });
       const data = await res.json();
       if (data.content) {
-        const decoded = JSON.parse(atob(data.content.replace(/\n/g, "")));
+        // 한국어 포함 UTF-8 올바르게 디코딩
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g, "")))));
         setList(Array.isArray(decoded) ? decoded : []);
       } else {
         setList([]);
@@ -1329,9 +1330,9 @@ const GukbapTab = () => {
           {filtered.map(item=>(
             <div key={item.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
               {item.thumbnail ? (
-                <img src={item.thumbnail} className="w-full h-36 object-cover"/>
+                <img src={item.thumbnail} className="w-full object-cover" style={{height:"280px", objectPosition:"top"}}/>
               ) : (
-                <div className="w-full h-36 bg-gray-100 flex items-center justify-center text-4xl">🎬</div>
+                <div className="w-full flex items-center justify-center text-4xl" style={{height:"280px",background:"#f3f4f6"}}>🎬</div>
               )}
               <div className="p-3">
                 <div className="flex items-start justify-between gap-2 mb-1.5">
