@@ -1194,108 +1194,103 @@ const GukbapTab = () => {
   const SAFETY_COLOR = {"안전":"#22c55e","주의":"#f59e0b","위험":"#ef4444"};
 
   return (
-    <div style={{background:"#111",minHeight:"100vh"}} className="px-6 py-6">
+    <div className="max-w-7xl mx-auto px-4 py-6">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-black text-white">🍚 국밥리스트</h2>
-          <p className="text-xs text-gray-500 mt-0.5">귤쌤이 직접 선별한 제작 안전 작품 모음</p>
+          <h2 className="text-xl font-black text-gray-900">🍚 국밥리스트</h2>
+          <p className="text-xs text-gray-400 mt-0.5">귤쌤이 직접 선별한 제작 안전 작품 모음</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={fetchList} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-400 hover:text-white transition-colors">🔄</button>
+          <button onClick={fetchList} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-400 hover:text-gray-700">🔄</button>
           {isAdmin ? (
             <>
               <button onClick={()=>{setEditItem(null);setForm({title:"",genre:"범죄스릴러",producer:"",distributor:"",platform:"",safety:"안전",memo:"",thumbnail:""});setShowForm(true);}}
-                className="text-xs font-black px-4 py-1.5 rounded-xl text-black" style={{background:"#FF8C00"}}>
+                className="text-xs font-black px-4 py-1.5 rounded-xl text-white" style={{background:"#FF8C00"}}>
                 + 작품 추가
               </button>
-              <button onClick={()=>setIsAdmin(false)} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-500 hover:text-white transition-colors">로그아웃</button>
+              <button onClick={()=>setIsAdmin(false)} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-400 bg-gray-100">로그아웃</button>
             </>
           ) : (
-            <button onClick={()=>setShowLogin(true)} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-600 hover:text-white transition-colors">관리자</button>
+            <button onClick={()=>setShowLogin(true)} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-400 bg-gray-100">관리자</button>
           )}
         </div>
       </div>
 
       {/* 장르 탭 */}
       <div className="flex gap-2 mb-6 flex-wrap">
-        {["전체",...genres].map(g=>{
-          const cnt = g==="전체"?list.length:list.filter(i=>i.genre===g).length;
-          return (
-            <button key={g} onClick={()=>setFilterGenre(g)}
-              className="text-sm font-bold px-4 py-1.5 rounded-full transition-all"
-              style={filterGenre===g?{background:"#FF8C00",color:"#000"}:{background:"#222",color:"#888"}}>
-              {g}
-            </button>
-          );
-        })}
+        {["전체",...genres].map(g=>(
+          <button key={g} onClick={()=>setFilterGenre(g)}
+            className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+            style={filterGenre===g?{background:"#FF8C00",color:"white"}:{background:"#f3f4f6",color:"#6b7280"}}>
+            {g} {g==="전체"?list.length:list.filter(i=>i.genre===g).length}
+          </button>
+        ))}
       </div>
 
       {/* 카드 그리드 */}
       {loading ? (
-        <div className="flex justify-center py-20"><div className="w-8 h-8 rounded-full border-4 border-gray-700 border-t-orange-400 animate-spin"/></div>
+        <div className="flex justify-center py-20"><div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-orange-400 animate-spin"/></div>
       ) : filtered.length===0 ? (
-        <div className="flex flex-col items-center py-24 text-gray-600">
+        <div className="flex flex-col items-center py-24 text-gray-300">
           <span className="text-5xl mb-3">🍚</span>
-          <p className="font-bold">아직 등록된 작품이 없어요</p>
+          <p className="font-bold text-gray-400">아직 등록된 작품이 없어요</p>
         </div>
       ) : (
         <div className="grid gap-5" style={{gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))"}}>
           {filtered.map(item=>(
             <div key={item.id} className="group cursor-pointer" onClick={()=>setSelected(selected?.id===item.id?null:item)}>
               {/* 포스터 */}
-              <div className="relative rounded-2xl overflow-hidden mb-3" style={{aspectRatio:"2/3"}}>
+              <div className="relative rounded-2xl overflow-hidden mb-3 shadow-sm" style={{aspectRatio:"2/3"}}>
                 {item.thumbnail ? (
-                  <img src={item.thumbnail} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"/>
+                  <img src={item.thumbnail} className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"/>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-5xl" style={{background:"#222"}}>🎬</div>
+                  <div className="w-full h-full flex items-center justify-center text-5xl bg-gray-100">🎬</div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"/>
-                {/* 배지 */}
-                <div className="absolute top-2 left-2 flex flex-col gap-1">
-                  {item.distributor&&<span className="text-xs font-black px-2 py-0.5 rounded-lg text-white" style={{background:"rgba(0,0,0,0.7)"}}>{item.distributor}</span>}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"/>
+                <div className="absolute top-2 left-2">
+                  {item.distributor&&<span className="text-xs font-black px-2 py-0.5 rounded-lg text-white" style={{background:"rgba(0,0,0,0.6)"}}>{item.distributor}</span>}
                 </div>
                 <div className="absolute top-2 right-2">
                   <span className="text-xs font-black px-2 py-0.5 rounded-lg text-white" style={{background:SAFETY_COLOR[item.safety]||"#22c55e"}}>{item.safety}</span>
                 </div>
-                {/* 호버 오버레이 */}
                 {isAdmin&&(
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                    <button onClick={e=>{e.stopPropagation();openEdit(item);}} className="text-xs font-black px-3 py-1.5 rounded-xl text-black" style={{background:"#FF8C00"}}>✏️ 수정</button>
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                    <button onClick={e=>{e.stopPropagation();openEdit(item);}} className="text-xs font-black px-3 py-1.5 rounded-xl text-white" style={{background:"#FF8C00"}}>✏️ 수정</button>
                   </div>
                 )}
               </div>
-              {/* 정보 */}
-              <p className="text-sm font-black text-white leading-snug mb-1">{item.title}</p>
-              {item.producer&&<p className="text-xs text-gray-500">제작: {item.producer}</p>}
-              <div className="flex items-center gap-1 mt-1">
-                <span className="text-xs px-2 py-0.5 rounded-full font-bold" style={{background:"#222",color:"#888"}}>{item.genre}</span>
-                {item.platform&&<span className="text-xs text-gray-600">{item.platform}</span>}
+              {/* 텍스트 */}
+              <p className="text-sm font-black text-gray-900 leading-snug mb-0.5">{item.title}</p>
+              {item.producer&&<p className="text-xs text-gray-400">제작 {item.producer}</p>}
+              <div className="flex items-center gap-1 mt-1 flex-wrap">
+                <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-orange-50 text-orange-500">{item.genre}</span>
+                {item.platform&&<span className="text-xs text-gray-400">{item.platform}</span>}
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* 선택된 작품 상세 (하단 슬라이드) */}
+      {/* 선택된 작품 상세 */}
       {selected&&(
-        <div className="fixed inset-x-0 bottom-0 z-40 p-4" style={{background:"linear-gradient(to top, #111 80%, transparent)"}}>
-          <div className="max-w-2xl mx-auto bg-gray-900 rounded-3xl p-5 shadow-2xl border border-gray-800">
+        <div className="fixed inset-x-0 bottom-0 z-40 p-4 pb-6" style={{background:"linear-gradient(to top, white 85%, transparent)"}}>
+          <div className="max-w-2xl mx-auto bg-white rounded-3xl p-5 shadow-xl border border-gray-100">
             <div className="flex gap-4">
-              {selected.thumbnail&&<img src={selected.thumbnail} className="w-16 h-24 object-cover rounded-xl flex-shrink-0"/>}
+              {selected.thumbnail&&<img src={selected.thumbnail} className="w-16 h-24 object-cover object-top rounded-xl flex-shrink-0"/>}
               <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-base font-black text-white">{selected.title}</p>
-                  <button onClick={()=>setSelected(null)} className="text-gray-600 hover:text-white text-lg flex-shrink-0">✕</button>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <p className="text-base font-black text-gray-900">{selected.title}</p>
+                  <button onClick={()=>setSelected(null)} className="text-gray-400 hover:text-gray-700 text-lg flex-shrink-0">✕</button>
                 </div>
-                <div className="flex flex-wrap gap-1.5 mt-1.5 mb-2">
+                <div className="flex flex-wrap gap-1.5 mb-2">
                   <span className="text-xs font-black px-2 py-0.5 rounded-full text-white" style={{background:SAFETY_COLOR[selected.safety]||"#22c55e"}}>한줄평: {selected.safety}</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full text-gray-400" style={{background:"#222"}}>{selected.genre}</span>
-                  {selected.platform&&<span className="text-xs px-2 py-0.5 rounded-full text-gray-400" style={{background:"#222"}}>{selected.platform}</span>}
+                  <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-orange-50 text-orange-500">{selected.genre}</span>
+                  {selected.platform&&<span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{selected.platform}</span>}
                 </div>
                 {selected.producer&&<p className="text-xs text-gray-500">제작사: {selected.producer}</p>}
                 {selected.distributor&&<p className="text-xs text-gray-500">배급사: {selected.distributor}</p>}
-                {selected.memo&&<p className="text-xs text-gray-400 mt-2 leading-relaxed">{selected.memo}</p>}
+                {selected.memo&&<p className="text-xs text-gray-500 mt-2 leading-relaxed">{selected.memo}</p>}
               </div>
             </div>
           </div>
@@ -1304,17 +1299,17 @@ const GukbapTab = () => {
 
       {/* 관리자 로그인 */}
       {showLogin&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={()=>setShowLogin(false)}>
-          <div className="rounded-3xl p-6 w-80 shadow-2xl space-y-3 border border-gray-800" style={{background:"#1a1a1a"}} onClick={e=>e.stopPropagation()}>
-            <h3 className="text-sm font-black text-white">🔐 관리자 로그인</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={()=>setShowLogin(false)}>
+          <div className="bg-white rounded-3xl p-6 w-80 shadow-2xl space-y-3" onClick={e=>e.stopPropagation()}>
+            <h3 className="text-sm font-black text-gray-900">🔐 관리자 로그인</h3>
             <input type="password" value={adminPw} onChange={e=>setAdminPw(e.target.value)}
-              placeholder="관리자 비밀번호" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-white" style={{background:"#222",border:"1px solid #333"}}/>
+              placeholder="관리자 비밀번호" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none"/>
             <input type="password" value={adminToken} onChange={e=>setAdminToken(e.target.value)}
-              placeholder="GitHub 토큰 (ghp_...)" className="w-full rounded-xl px-3 py-2.5 text-sm outline-none text-white font-mono" style={{background:"#222",border:"1px solid #333"}}/>
-            <p className="text-xs text-gray-600">토큰은 이 브라우저에만 저장돼요</p>
+              placeholder="GitHub 토큰 (ghp_...)" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none font-mono"/>
+            <p className="text-xs text-gray-400">토큰은 이 브라우저에만 저장돼요</p>
             <div className="flex gap-2">
-              <button onClick={handleLogin} className="flex-1 py-2.5 rounded-xl text-sm font-black text-black" style={{background:"#FF8C00"}}>입장</button>
-              <button onClick={()=>setShowLogin(false)} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-500" style={{background:"#222"}}>취소</button>
+              <button onClick={handleLogin} className="flex-1 py-2.5 rounded-xl text-sm font-black text-white" style={{background:"#FF8C00"}}>입장</button>
+              <button onClick={()=>setShowLogin(false)} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-500 bg-gray-100">취소</button>
             </div>
           </div>
         </div>
@@ -1322,11 +1317,11 @@ const GukbapTab = () => {
 
       {/* 작품 추가/수정 폼 */}
       {showForm&&(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:"rgba(0,0,0,0.8)"}}>
-          <div className="rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-800" style={{background:"#1a1a1a"}}>
-            <div className="p-5 border-b flex items-center justify-between" style={{borderColor:"#333"}}>
-              <h3 className="text-sm font-black text-white">{editItem?"작품 수정":"작품 추가"}</h3>
-              <button onClick={()=>setShowForm(false)} className="w-7 h-7 flex items-center justify-center rounded-full text-gray-500" style={{background:"#333"}}>✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-sm font-black text-gray-900">{editItem?"작품 수정":"작품 추가"}</h3>
+              <button onClick={()=>setShowForm(false)} className="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500">✕</button>
             </div>
             <div className="p-5 space-y-3">
               {[
@@ -1337,40 +1332,40 @@ const GukbapTab = () => {
                 {label:"썸네일 URL", key:"thumbnail", placeholder:"https://..."},
               ].map(f=>(
                 <div key={f.key}>
-                  <label className="text-xs font-black text-gray-400 block mb-1">{f.label}</label>
+                  <label className="text-xs font-black text-gray-600 block mb-1">{f.label}</label>
                   <input value={form[f.key]} onChange={e=>setForm(p=>({...p,[f.key]:e.target.value}))}
-                    placeholder={f.placeholder} className="w-full rounded-xl px-3 py-2 text-sm outline-none text-white placeholder-gray-600" style={{background:"#222",border:"1px solid #333"}}/>
+                    placeholder={f.placeholder} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-orange-300"/>
                 </div>
               ))}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-black text-gray-400 block mb-1">장르</label>
+                  <label className="text-xs font-black text-gray-600 block mb-1">장르</label>
                   <select value={form.genre} onChange={e=>setForm(p=>({...p,genre:e.target.value}))}
-                    className="w-full rounded-xl px-3 py-2 text-sm outline-none text-white" style={{background:"#222",border:"1px solid #333"}}>
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none bg-white">
                     {GENRES.map(g=><option key={g}>{g}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-black text-gray-400 block mb-1">안전도</label>
+                  <label className="text-xs font-black text-gray-600 block mb-1">안전도</label>
                   <select value={form.safety} onChange={e=>setForm(p=>({...p,safety:e.target.value}))}
-                    className="w-full rounded-xl px-3 py-2 text-sm outline-none text-white" style={{background:"#222",border:"1px solid #333"}}>
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none bg-white">
                     {["안전","주의","위험"].map(s=><option key={s}>{s}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label className="text-xs font-black text-gray-400 block mb-1">메모</label>
+                <label className="text-xs font-black text-gray-600 block mb-1">메모</label>
                 <textarea value={form.memo} onChange={e=>setForm(p=>({...p,memo:e.target.value}))}
                   placeholder="특이사항 등" rows={3}
-                  className="w-full rounded-xl px-3 py-2 text-sm outline-none resize-none text-white placeholder-gray-600" style={{background:"#222",border:"1px solid #333"}}/>
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none resize-none focus:border-orange-300"/>
               </div>
               <div className="flex gap-2 pt-1">
                 <button onClick={()=>adminAction(editItem?"edit":"add",form,editItem?.id)} disabled={!form.title.trim()||saving}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-black text-black disabled:opacity-40" style={{background:"#FF8C00"}}>
+                  className="flex-1 py-2.5 rounded-xl text-sm font-black text-white disabled:opacity-40" style={{background:"#FF8C00"}}>
                   {saving?"저장 중...":editItem?"수정 완료":"추가"}
                 </button>
                 {editItem&&<button onClick={()=>{if(window.confirm("삭제할까요?"))adminAction("delete",null,editItem.id);}} disabled={saving}
-                  className="px-4 py-2.5 rounded-xl text-sm font-bold text-red-400" style={{background:"#2a1010"}}>삭제</button>}
+                  className="px-4 py-2.5 rounded-xl text-sm font-bold text-red-500 bg-red-50">삭제</button>}
               </div>
             </div>
           </div>
