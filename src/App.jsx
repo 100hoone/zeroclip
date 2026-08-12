@@ -2267,9 +2267,11 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
         `하이라이트 대사: 이 장면에서 가장 임팩트 있는 대사 (기억나는 대로 최대한 정확하게, 불확실하면 "(유사 대사)"라고 표시)`,
         `후킹 포인트: 시청자가 왜 이 장면에 반응하는지, 어떤 감정을 건드리는지 구체적으로`,
         `추천 제목 3개:`,
-        `① (궁금증 유발형 - 끝까지 보게 만드는 제목)`,
-        `② (반전/충격형 - 예상 못한 사실을 드러내는 제목)`,
-        `③ (공감형 - 시청자 감정을 건드리는 제목)`,
+        `① (궁금증 유발형 - 음슴체/명사형으로 끝, 등장인물 이름 포함, "~요?" "~나요?" 절대 사용 금지)`,
+        `② (반전/충격형 - 음슴체/명사형으로 끝, 등장인물 이름 포함, "~요?" "~나요?" 절대 사용 금지)`,
+        `③ (공감형 - 음슴체/명사형으로 끝, 등장인물 이름 포함, "~요?" "~나요?" 절대 사용 금지)`,
+        `제목 예시: "문동은이 겪었던 충격적인 학교폭력 ㄷㄷ" / "박연진의 최후가 이렇게 될 줄은..." / "연진이가 동은한테 한 짓 실화임?"`,
+        `절대 "~할 수 있나요?" "~믿을 수 있나요?" 같은 의문형 끝맺음 사용 금지`,
         ``,
         `---`,
         ``,
@@ -2296,7 +2298,7 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
     const bold = line.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
     if (isDivider) return <hr key={i} className="my-4 border-gray-100"/>;
     if (isClipHeader) return <p key={i} className="text-base font-black text-gray-900 mt-5 mb-3 pb-1 border-b-2 border-orange-200" dangerouslySetInnerHTML={{__html:bold}}/>;
-    if (isLabel) return <p key={i} className="text-xs font-black text-orange-500 mt-3 mb-0.5" dangerouslySetInnerHTML={{__html:bold}}/>;
+    if (isLabel) return <p key={i} className="text-sm font-black text-orange-500 mt-4 mb-1" dangerouslySetInnerHTML={{__html:bold}}/>;
     if (line.startsWith("①")||line.startsWith("②")||line.startsWith("③")) return <p key={i} className="text-sm text-gray-800 bg-gray-50 rounded-xl px-3 py-1.5 mt-1" dangerouslySetInnerHTML={{__html:bold}}/>;
     if (line==="") return <div key={i} className="h-1"/>;
     return <p key={i} className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{__html:bold}}/>;
