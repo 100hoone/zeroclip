@@ -352,7 +352,7 @@ const ScriptModal = ({ item, onClose, onSave, geminiKey }) => {
   const copy = ()=>{navigator.clipboard.writeText(text);setCopied(true);setTimeout(()=>setCopied(false),1500);};
 
   const runGemini = async (selectedMode) => {
-    if (!geminiKey||!geminiKey.startsWith("AIza")) { setError("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return; }
+    if (!openAiKey||!openAiKey.startsWith("sk-")) { setError("⚙️ 설정에서 ChatGPT API 키를 먼저 등록해주세요"); return; }
     if (!item.url) { setError("영상 URL이 없어요"); return; }
     setLoading(true); setError(""); setMode(selectedMode);
     try {
@@ -2241,7 +2241,7 @@ ${item.script?`\n📄 대본:\n${item.script}`:""}
 // ─────────────────────────────────────────────
 // 분석 탭
 // ─────────────────────────────────────────────
-const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
+const AnalysisTab = ({ openAiKey, onOpenSettings }) => {
   const [title, setTitle]     = useState("");
   const [result, setResult]   = useState("");
   const [loading, setLoading] = useState(false);
@@ -2255,7 +2255,7 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
 
   const analyze = async () => {
     if (!title.trim()) return;
-    if (!geminiKey||!geminiKey.startsWith("AIza")) { setError("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return; }
+    if (!openAiKey||!openAiKey.startsWith("sk-")) { setError("⚙️ 설정에서 ChatGPT API 키를 먼저 등록해주세요"); return; }
     setLoading(true); setError(""); setResult("");
     try {
       const prompt = [
@@ -2284,7 +2284,7 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
         ``,
         `📍 클립 3, 4, 5도 동일하게 작성`,
       ].join("\n");
-      const res = await fetch("/api/gemini", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ key:geminiKey, prompt }) });
+      const res = await fetch("/api/gemini", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ key:openAiKey, prompt }) });
       const data = await res.json();
       if (!res.ok) { setError(data.error||"오류 발생"); setLoading(false); return; }
       setResult(data.result);
@@ -2314,9 +2314,9 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
         <h2 className="text-2xl font-black text-gray-900 mb-2">🔍 작품 분석</h2>
         <p className="text-sm text-gray-400">작품명 입력 하나로 제목·클립·대사 전부 뽑아드려요</p>
       </div>
-      {(!geminiKey||!geminiKey.startsWith("AIza"))&&(
+      {(!openAiKey||!openAiKey.startsWith("sk-"))&&(
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex items-center justify-between">
-          <div><p className="text-sm font-black text-amber-700">⚙️ Gemini API 키 등록 필요</p><p className="text-xs text-amber-600 mt-0.5">설정에서 Gemini API 키를 등록해주세요</p></div>
+          <div><p className="text-sm font-black text-amber-700">⚙️ ChatGPT API 키 등록 필요</p><p className="text-xs text-amber-600 mt-0.5">설정에서 ChatGPT(OpenAI) API 키를 등록해주세요</p></div>
           <button onClick={onOpenSettings} className="text-xs font-black px-3 py-1.5 rounded-xl text-white" style={{background:"#FF8C00"}}>설정 열기</button>
         </div>
       )}
@@ -2332,7 +2332,7 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
           </button>
         </div>
         {error&&<p className="text-xs text-red-500 mt-2">{error}</p>}
-        <p className="text-xs text-gray-400 mt-2">드라마·영화·예능 모두 가능 · Gemini AI가 즉시 분석해드려요</p>
+        <p className="text-xs text-gray-400 mt-2">드라마·영화·예능 모두 가능 · ChatGPT가 즉시 분석해드려요</p>
       </div>
       {loading&&(
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 text-center">
@@ -3088,7 +3088,7 @@ export default function ZeroClip() {
       {tab==="gukbap" ? (
         <GukbapTab/>
       ) : tab==="analysis" ? (
-        <AnalysisTab geminiKey={geminiKey} onOpenSettings={()=>setShowSettings(true)}/>
+        <AnalysisTab openAiKey={openAiKey} onOpenSettings={()=>setShowSettings(true)}/>
       ) : tab==="channels" ? (
         <ChannelsTab cards={cards} refChannels={refChannels} saveRefChannels={saveRefChannels} onUpdateCards={saveCat} apiKey={apiKey} onBulkCatChange={(chName,mainCat,subCat)=>{
           setCards(p=>{ const n=p.map(c=>c.channel===chName?{...c,mainCat,subCat}:c); localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
