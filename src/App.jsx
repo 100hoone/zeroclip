@@ -2241,69 +2241,87 @@ ${item.script?`\n📄 대본:\n${item.script}`:""}
 // ─────────────────────────────────────────────
 // 분석 탭
 // ─────────────────────────────────────────────
-const AnalysisTab = ({ openAiKey, onOpenSettings }) => {
-  const [title, setTitle]     = useState("");
-  const [result, setResult]   = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
-  const [history, setHistory] = useState(()=>{ try{ return JSON.parse(localStorage.getItem("analysis_history")||"[]"); }catch{ return []; } });
+const AnalysisTab = ({ cards, geminiKey, onOpenSettings }) => {
+  const [selectedCards, setSelectedCards] = useState([]);
+  const [customUrl, setCustomUrl]         = useState("");
+  const [result, setResult]               = useState("");
+  const [loading, setLoading]             = useState(false);
+  const [error, setError]                 = useState("");
+  const [history, setHistory]             = useState(()=>{ try{ return JSON.parse(localStorage.getItem("analysis_history")||"[]"); }catch{ return []; } });
+  const [showCardPicker, setShowCardPicker] = useState(false);
+  const [searchQ, setSearchQ]             = useState("");
+
   const deleteHistory = (i) => {
     const n = history.filter((_,idx)=>idx!==i);
-    setHistory(n);
-    localStorage.setItem("analysis_history", JSON.stringify(n));
+    setHistory(n); localStorage.setItem("analysis_history", JSON.stringify(n));
+  };
+
+  // URL에서 비디오 ID 추출
+  const extractVideoId = (url) => url?.match(/(?:v=|shorts\/)([A-Za-z0-9_-]{11})/)?.[1];
+
+  // 자산리스트에서 URL 있는 카드만
+  const urlCards = cards.filter(c=>c.url&&extractVideoId(c.url));
+
+  const toggleCard = (card) => {
+    setSelectedCards(p=>
+      p.find(c=>c.id===card.id) ? p.filter(c=>c.id!==card.id) : [...p, card]
+    );
   };
 
   const analyze = async () => {
-    if (!title.trim()) return;
-    if (!openAiKey||!openAiKey.startsWith("sk-")) { setError("⚙️ 설정에서 ChatGPT API 키를 먼저 등록해주세요"); return; }
+    if (!geminiKey||!geminiKey.startsWith("AIza")) {
+      setError("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return;
+    }
+    const targets = customUrl.trim()
+      ? [{ title: customUrl, url: customUrl }]
+      : selectedCards;
+    if (targets.length === 0) { setError("영상을 선택하거나 URL을 입력해주세요"); return; }
+
     setLoading(true); setError(""); setResult("");
+
     try {
-      const prompt = [
-        `당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다.`,
-        `절대 인사말, 서론, 마무리 말 없이 바로 분석 내용만 출력하세요.`,
-        ``,
-        `"${title.trim()}"에서 유튜브 쇼츠로 만들기 좋은 클립 5개를 아래 형식으로 작성하세요.`,
-        `각 클립은 반드시 서로 다른 장면이어야 합니다.`,
-        ``,
-        `📍 클립 1 - [장면을 한 줄로 임팩트 있게 표현한 제목]`,
-        ``,
-        `줄거리: 이 장면 직전에 무슨 일이 있었는지 → 이 장면에서 무슨 일이 일어나는지 → 이 장면 이후 어떻게 이어지는지. 쇼츠 기승전결을 만들 수 있도록 앞뒤 맥락까지 포함해서 4~5문장으로 자세하게 작성.`,
-        `하이라이트 대사: 이 장면에서 가장 임팩트 있는 대사 (기억나는 대로 최대한 정확하게, 불확실하면 "(유사 대사)"라고 표시)`,
-        `후킹 포인트: 시청자가 왜 이 장면에 반응하는지, 어떤 감정을 건드리는지 구체적으로`,
-        `추천 제목 3개:`,
-        `① (궁금증 유발형 - 음슴체/명사형으로 끝, 등장인물 이름 포함, "~요?" "~나요?" 절대 사용 금지)`,
-        `② (반전/충격형 - 음슴체/명사형으로 끝, 등장인물 이름 포함, "~요?" "~나요?" 절대 사용 금지)`,
-        `③ (공감형 - 음슴체/명사형으로 끝, 등장인물 이름 포함, "~요?" "~나요?" 절대 사용 금지)`,
-        `제목 예시: "문동은이 겪었던 충격적인 학교폭력 ㄷㄷ" / "박연진의 최후가 이렇게 될 줄은..." / "연진이가 동은한테 한 짓 실화임?"`,
-        `절대 "~할 수 있나요?" "~믿을 수 있나요?" 같은 의문형 끝맺음 사용 금지`,
-        ``,
-        `---`,
-        ``,
-        `📍 클립 2 - [장면을 한 줄로 임팩트 있게 표현한 제목]`,
-        `(동일한 형식)`,
-        ``,
-        `📍 클립 3, 4, 5도 동일하게 작성`,
-      ].join("\n");
-      // Responses API - 웹 검색 지원
-      const res = await fetch("https://api.openai.com/v1/responses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          tools: [{ type: "web_search_preview" }],
-          instructions: "당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다. 절대 인사말, 서론, 마무리 말 없이 바로 분석 내용만 출력하세요. 반드시 웹 검색으로 실제 에피소드 내용을 확인한 후 정확한 장면 정보를 제공하세요. 한국어로 답변하세요.",
-          input: prompt,
-          max_output_tokens: 4000
-        })
-      });
-      const data = await res.json();
-      if (data.error) { setError(data.error.message); setLoading(false); return; }
-      // Responses API 응답 파싱
-      const result = data.output?.find(o=>o.type==="message")
-        ?.content?.find(c=>c.type==="output_text")?.text || "";
-      if (!result) { setError("응답이 비어있어요. 다시 시도해주세요."); setLoading(false); return; }
-      setResult(result);
-      const newHistory = [{ title:title.trim(), result, date:new Date().toLocaleDateString("ko") }, ...history].slice(0,10);
+      const allResults = [];
+      for (const card of targets) {
+        const videoUrl = card.url;
+        const prompt = [
+          `이 유튜브 영상을 직접 보고 분석해주세요.`,
+          `쇼츠로 만들기 좋은 클립을 5개 찾아서 아래 형식으로 작성하세요.`,
+          `절대 인사말 없이 바로 본론만 출력하세요.`,
+          ``,
+          `📍 클립 1 - [장면을 한 줄로 임팩트 있게 표현한 제목]`,
+          ``,
+          `줄거리: 이 장면 직전에 무슨 일이 있었는지 → 이 장면에서 무슨 일이 일어나는지 → 이후 어떻게 이어지는지. 4~5문장으로 자세하게.`,
+          `타임라인: 영상에서 직접 확인한 정확한 구간 (예: 0:32~0:58)`,
+          `하이라이트 대사: 영상에서 직접 들은 대사 그대로 인용`,
+          `후킹 포인트: 시청자가 왜 이 장면에 반응하는지, 어떤 감정을 건드리는지`,
+          `추천 제목 3개:`,
+          `① 음슴체/명사형, 등장인물 이름 포함, "~요?" 절대 금지`,
+          `② 음슴체/명사형, 등장인물 이름 포함, "~요?" 절대 금지`,
+          `③ 음슴체/명사형, 등장인물 이름 포함, "~요?" 절대 금지`,
+          ``,
+          `---`,
+          ``,
+          `📍 클립 2~5도 동일한 형식으로 작성`,
+        ].join("\n");
+
+        const res = await fetch("/api/gemini", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: geminiKey, videoUrl, prompt })
+        });
+        const data = await res.json();
+        if (data.error) { setError(data.error); setLoading(false); return; }
+        allResults.push(`🎬 **${card.title||videoUrl}**\n\n${data.result}`);
+      }
+
+      const finalResult = allResults.join("\n\n" + "=".repeat(40) + "\n\n");
+      setResult(finalResult);
+
+      const newHistory = [{
+        title: targets.map(c=>c.title||c.url).join(", "),
+        result: finalResult,
+        date: new Date().toLocaleDateString("ko")
+      }, ...history].slice(0, 10);
       setHistory(newHistory);
       localStorage.setItem("analysis_history", JSON.stringify(newHistory));
     } catch(e) { setError("오류: "+e.message); }
@@ -2311,75 +2329,152 @@ const AnalysisTab = ({ openAiKey, onOpenSettings }) => {
   };
 
   const renderResult = (text) => text.split("\n").map((line,i)=>{
-    const isClipHeader = line.startsWith("📍");
-    const isDivider = line.trim() === "---";
-    const isLabel = ["줄거리:","하이라이트 대사:","후킹 포인트:","추천 제목 3개:"].some(l=>line.startsWith(l));
     const bold = line.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
-    if (isDivider) return <hr key={i} className="my-4 border-gray-100"/>;
-    if (isClipHeader) return <p key={i} className="text-base font-black text-gray-900 mt-5 mb-3 pb-1 border-b-2 border-orange-200" dangerouslySetInnerHTML={{__html:bold}}/>;
-    if (isLabel) return <p key={i} className="text-sm font-black text-orange-500 mt-4 mb-1" dangerouslySetInnerHTML={{__html:bold}}/>;
-    if (line.startsWith("①")||line.startsWith("②")||line.startsWith("③")) return <p key={i} className="text-sm text-gray-800 bg-gray-50 rounded-xl px-3 py-1.5 mt-1" dangerouslySetInnerHTML={{__html:bold}}/>;
+    const isClipHeader = line.startsWith("📍");
+    const isDivider = line.trim().startsWith("===");
+    const isVideoHeader = line.startsWith("🎬");
+    const isLabel = ["줄거리:","타임라인:","하이라이트 대사:","후킹 포인트:","추천 제목 3개:"].some(l=>line.startsWith(l));
+    if (isDivider) return <hr key={i} className="my-6 border-gray-200"/>;
+    if (isVideoHeader) return <p key={i} className="text-lg font-black text-gray-900 mb-3" dangerouslySetInnerHTML={{__html:bold}}/>;
+    if (isClipHeader) return <p key={i} className="text-base font-black text-gray-900 mt-6 mb-2 pb-1 border-b-2 border-orange-200" dangerouslySetInnerHTML={{__html:bold}}/>;
+    if (isLabel) return <p key={i} className="text-sm font-black text-orange-500 mt-3 mb-0.5" dangerouslySetInnerHTML={{__html:bold}}/>;
+    if (line.startsWith("①")||line.startsWith("②")||line.startsWith("③")) return <p key={i} className="text-sm text-gray-800 bg-gray-50 rounded-xl px-3 py-2 mt-1" dangerouslySetInnerHTML={{__html:bold}}/>;
     if (line==="") return <div key={i} className="h-1"/>;
     return <p key={i} className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{__html:bold}}/>;
   });
 
+  const filtered = urlCards.filter(c=>
+    !searchQ || c.title?.includes(searchQ) || c.channel?.includes(searchQ)
+  );
+
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-black text-gray-900 mb-2">🔍 작품 분석</h2>
-        <p className="text-sm text-gray-400">작품명 입력 하나로 제목·클립·대사 전부 뽑아드려요</p>
+    <div className="max-w-4xl mx-auto px-4 py-6">
+      {/* 헤더 */}
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-black text-gray-900 mb-1">🔍 영상 분석</h2>
+        <p className="text-sm text-gray-400">Gemini가 영상을 직접 보고 클립·제목·대사를 뽑아드려요</p>
       </div>
-      {(!openAiKey||!openAiKey.startsWith("sk-"))&&(
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex items-center justify-between">
-          <div><p className="text-sm font-black text-amber-700">⚙️ ChatGPT API 키 등록 필요</p><p className="text-xs text-amber-600 mt-0.5">설정에서 ChatGPT(OpenAI) API 키를 등록해주세요</p></div>
+
+      {(!geminiKey||!geminiKey.startsWith("AIza"))&&(
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 flex items-center justify-between">
+          <p className="text-sm font-black text-amber-700">⚙️ Gemini API 키 등록 필요</p>
           <button onClick={onOpenSettings} className="text-xs font-black px-3 py-1.5 rounded-xl text-white" style={{background:"#FF8C00"}}>설정 열기</button>
         </div>
       )}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 mb-6">
-        <label className="text-xs font-black text-gray-600 block mb-2">🎬 작품명 입력</label>
-        <div className="flex gap-3">
-          <input value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&analyze()}
-            placeholder="예: 더 글로리, 오징어게임, 이상한 변호사 우영우..."
-            className="flex-1 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-orange-300"/>
-          <button onClick={analyze} disabled={loading||!title.trim()}
-            className="px-6 py-3 rounded-2xl text-sm font-black text-white disabled:opacity-40 flex-shrink-0 flex items-center gap-2" style={{background:"#FF8C00"}}>
-            {loading?<><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"/><span>분석 중</span></>:<span>딸깍 분석 ✨</span>}
-          </button>
+
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 mb-4">
+        {/* 자산리스트에서 선택 */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-black text-gray-600">📦 자산리스트에서 선택</label>
+            <button onClick={()=>setShowCardPicker(o=>!o)}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50">
+              {showCardPicker ? "접기 ▲" : `펼치기 ▼ (${urlCards.length}개)`}
+            </button>
+          </div>
+
+          {/* 선택된 카드 미리보기 */}
+          {selectedCards.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {selectedCards.map(c=>(
+                <div key={c.id} className="flex items-center gap-1.5 bg-orange-50 border border-orange-200 rounded-xl px-2.5 py-1">
+                  <img src={c.thumbnail} className="w-8 h-5 object-cover rounded"/>
+                  <span className="text-xs font-bold text-orange-700 max-w-24 truncate">{c.title}</span>
+                  <button onClick={()=>toggleCard(c)} className="text-orange-400 hover:text-orange-600 text-xs">✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {showCardPicker && (
+            <div className="border border-gray-100 rounded-2xl overflow-hidden">
+              <div className="p-2 border-b border-gray-100">
+                <input value={searchQ} onChange={e=>setSearchQ(e.target.value)}
+                  placeholder="제목, 채널명 검색..."
+                  className="w-full text-sm px-3 py-2 rounded-xl border border-gray-200 outline-none"/>
+              </div>
+              <div className="max-h-60 overflow-y-auto">
+                {filtered.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-6">유튜브 URL이 있는 카드가 없어요</p>
+                ) : filtered.slice(0,30).map(c=>(
+                  <div key={c.id} onClick={()=>toggleCard(c)}
+                    className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-50 border-b border-gray-50 ${selectedCards.find(s=>s.id===c.id)?"bg-orange-50":""}`}>
+                    <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${selectedCards.find(s=>s.id===c.id)?"border-orange-400 bg-orange-400":"border-gray-300"}`}>
+                      {selectedCards.find(s=>s.id===c.id)&&<span className="text-white text-xs">✓</span>}
+                    </div>
+                    <img src={c.thumbnail} className="w-14 h-9 object-cover rounded-lg flex-shrink-0"/>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-gray-900 truncate">{c.title}</p>
+                      <p className="text-xs text-gray-400">{c.channel} · {c.multiplier}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-        {error&&<p className="text-xs text-red-500 mt-2">{error}</p>}
-        <p className="text-xs text-gray-400 mt-2">드라마·영화·예능 모두 가능 · ChatGPT가 즉시 분석해드려요</p>
+
+        {/* 구분선 */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex-1 h-px bg-gray-100"/>
+          <span className="text-xs text-gray-400 font-bold">또는</span>
+          <div className="flex-1 h-px bg-gray-100"/>
+        </div>
+
+        {/* 직접 URL 입력 */}
+        <div className="mb-4">
+          <label className="text-xs font-black text-gray-600 block mb-2">🔗 유튜브 URL 직접 입력</label>
+          <input value={customUrl} onChange={e=>setCustomUrl(e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=..."
+            className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-orange-300"/>
+        </div>
+
+        {error&&<p className="text-xs text-red-500 mb-3">{error}</p>}
+
+        <button onClick={analyze} disabled={loading||(selectedCards.length===0&&!customUrl.trim())}
+          className="w-full py-3.5 rounded-2xl text-sm font-black text-white disabled:opacity-40 flex items-center justify-center gap-2"
+          style={{background:"#FF8C00"}}>
+          {loading
+            ? <><div className="w-5 h-5 rounded-full border-2 border-white/40 border-t-white animate-spin"/><span>Gemini가 영상 분석 중...</span></>
+            : <span>✨ 딸깍 분석 ({selectedCards.length > 0 ? `${selectedCards.length}개 선택` : "URL 입력"})</span>
+          }
+        </button>
+        <p className="text-xs text-gray-400 text-center mt-2">Gemini가 영상을 직접 보고 실제 장면·대사·타임라인을 분석해요</p>
       </div>
+
+      {/* 로딩 */}
       {loading&&(
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 text-center">
           <div className="w-10 h-10 rounded-full border-4 border-gray-200 border-t-orange-400 animate-spin mx-auto mb-4"/>
-          <p className="text-sm font-bold text-gray-500">"{title}" 분석 중...</p>
-          <p className="text-xs text-gray-400 mt-1">인기 구간·추천 클립·제목까지 찾고 있어요</p>
+          <p className="text-sm font-bold text-gray-500">Gemini가 영상을 직접 보고 있어요...</p>
+          <p className="text-xs text-gray-400 mt-1">실제 장면·대사·타임라인 분석 중 (30초~1분 소요)</p>
         </div>
       )}
+
+      {/* 결과 */}
       {result&&!loading&&(
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 mb-4">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-base font-black text-gray-900">📋 "{title}" 분석 결과</p>
-            <button onClick={()=>{navigator.clipboard.writeText(result);alert("복사됐어요!");}} className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600">복사</button>
-          </div>
-          <div className="bg-amber-50 rounded-xl px-3 py-2 mb-4">
-            <p className="text-xs text-amber-700">⚠️ 하이라이트 대사는 AI 추정값으로 실제와 다를 수 있어요. 직접 확인 후 사용하세요.</p>
+            <p className="text-base font-black text-gray-900">📋 분석 결과</p>
+            <button onClick={()=>{navigator.clipboard.writeText(result);alert("복사됐어요!");}}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600">복사</button>
           </div>
           <div className="space-y-0.5">{renderResult(result)}</div>
         </div>
       )}
+
+      {/* 히스토리 */}
       {history.length>0&&!result&&!loading&&(
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
           <p className="text-xs font-black text-gray-500 mb-3">📂 최근 분석 기록</p>
           <div className="space-y-2">
             {history.map((h,i)=>(
-              <div key={i} className="flex items-center gap-2 p-3 rounded-2xl hover:bg-gray-50 transition-colors">
-                <button onClick={()=>{setTitle(h.title);setResult(h.result);}} className="flex-1 text-left flex items-center gap-3">
+              <div key={i} className="flex items-center gap-2">
+                <button onClick={()=>setResult(h.result)} className="flex-1 text-left flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50">
                   <span className="text-lg">🎬</span>
-                  <div><p className="text-sm font-bold text-gray-900">{h.title}</p><p className="text-xs text-gray-400">{h.date}</p></div>
+                  <div><p className="text-sm font-bold text-gray-900 truncate">{h.title}</p><p className="text-xs text-gray-400">{h.date}</p></div>
                 </button>
-                <button onClick={()=>{const n=history.filter((_,j)=>j!==i);setHistory(n);localStorage.setItem("analysis_history",JSON.stringify(n));}}
-                  className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-red-400 hover:bg-red-50 flex-shrink-0 text-xs transition-colors">✕</button>
+                <button onClick={()=>deleteHistory(i)} className="w-7 h-7 flex items-center justify-center rounded-full text-gray-300 hover:text-red-400 hover:bg-red-50 flex-shrink-0">✕</button>
               </div>
             ))}
           </div>
@@ -3103,7 +3198,7 @@ export default function ZeroClip() {
       {tab==="gukbap" ? (
         <GukbapTab/>
       ) : tab==="analysis" ? (
-        <AnalysisTab openAiKey={openAiKey} onOpenSettings={()=>setShowSettings(true)}/>
+        <AnalysisTab cards={cards} geminiKey={geminiKey} onOpenSettings={()=>setShowSettings(true)}/>
       ) : tab==="channels" ? (
         <ChannelsTab cards={cards} refChannels={refChannels} saveRefChannels={saveRefChannels} onUpdateCards={saveCat} apiKey={apiKey} onBulkCatChange={(chName,mainCat,subCat)=>{
           setCards(p=>{ const n=p.map(c=>c.channel===chName?{...c,mainCat,subCat}:c); localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
