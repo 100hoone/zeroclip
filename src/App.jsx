@@ -2284,7 +2284,8 @@ const AnalysisTab = ({ cards, geminiKey, onOpenSettings }) => {
       for (const card of targets) {
         const videoUrl = card.url;
         const prompt = [
-          `이 유튜브 영상을 직접 보고 아래 형식으로 분석해주세요.`,
+          `영상 제목: "${card.title || ""}" / 채널: "${card.channel || ""}"`,
+          `위 정보를 참고해서 이 유튜브 영상을 직접 보고 아래 형식으로 분석해주세요.`,
           `절대 인사말 없이 바로 본론만 출력하세요.`,
           ``,
           `🎬 작품 정보`,
