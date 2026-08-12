@@ -2247,6 +2247,11 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState("");
   const [history, setHistory] = useState(()=>{ try{ return JSON.parse(localStorage.getItem("analysis_history")||"[]"); }catch{ return []; } });
+  const deleteHistory = (i) => {
+    const n = history.filter((_,idx)=>idx!==i);
+    setHistory(n);
+    localStorage.setItem("analysis_history", JSON.stringify(n));
+  };
 
   const analyze = async () => {
     if (!title.trim()) return;
