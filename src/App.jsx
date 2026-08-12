@@ -2263,7 +2263,6 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
         `📍 클립 1 - [장면을 한 줄로 임팩트 있게 표현한 제목]`,
         ``,
         `줄거리: 이 장면 직전에 무슨 일이 있었는지 → 이 장면에서 무슨 일이 일어나는지 → 이 장면 이후 어떻게 이어지는지. 쇼츠 기승전결을 만들 수 있도록 앞뒤 맥락까지 포함해서 4~5문장으로 자세하게 작성.`,
-        `타임라인: 대략적인 구간 (AI 추정, 실제와 다를 수 있음)`,
         `하이라이트 대사: 이 장면에서 가장 임팩트 있는 대사 (기억나는 대로 최대한 정확하게, 불확실하면 "(유사 대사)"라고 표시)`,
         `후킹 포인트: 시청자가 왜 이 장면에 반응하는지, 어떤 감정을 건드리는지 구체적으로`,
         `추천 제목 3개:`,
@@ -2294,7 +2293,7 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
   const renderResult = (text) => text.split("\n").map((line,i)=>{
     const isClipHeader = line.startsWith("📍");
     const isDivider = line.trim() === "---";
-    const isLabel = ["줄거리:","타임라인:","하이라이트 대사:","후킹 포인트:","추천 제목 3개:"].some(l=>line.startsWith(l));
+    const isLabel = ["줄거리:","하이라이트 대사:","후킹 포인트:","추천 제목 3개:"].some(l=>line.startsWith(l));
     const bold = line.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
     if (isDivider) return <hr key={i} className="my-4 border-gray-100"/>;
     if (isClipHeader) return <p key={i} className="text-base font-black text-gray-900 mt-5 mb-3 pb-1 border-b-2 border-orange-200" dangerouslySetInnerHTML={{__html:bold}}/>;
@@ -2344,7 +2343,7 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
             <button onClick={()=>{navigator.clipboard.writeText(result);alert("복사됐어요!");}} className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600">복사</button>
           </div>
           <div className="bg-amber-50 rounded-xl px-3 py-2 mb-4">
-            <p className="text-xs text-amber-700">⚠️ 타임라인과 대사는 AI 추정값이에요. 실제 영상에서 직접 확인 후 사용하세요.</p>
+            <p className="text-xs text-amber-700">⚠️ 하이라이트 대사는 AI 추정값으로 실제와 다를 수 있어요. 직접 확인 후 사용하세요.</p>
           </div>
           <div className="space-y-0.5">{renderResult(result)}</div>
         </div>
@@ -2354,10 +2353,14 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
           <p className="text-xs font-black text-gray-500 mb-3">📂 최근 분석 기록</p>
           <div className="space-y-2">
             {history.map((h,i)=>(
-              <button key={i} onClick={()=>{setTitle(h.title);setResult(h.result);}} className="w-full text-left flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors">
-                <span className="text-lg">🎬</span>
-                <div><p className="text-sm font-bold text-gray-900">{h.title}</p><p className="text-xs text-gray-400">{h.date}</p></div>
-              </button>
+              <div key={i} className="flex items-center gap-2 p-3 rounded-2xl hover:bg-gray-50 transition-colors">
+                <button onClick={()=>{setTitle(h.title);setResult(h.result);}} className="flex-1 text-left flex items-center gap-3">
+                  <span className="text-lg">🎬</span>
+                  <div><p className="text-sm font-bold text-gray-900">{h.title}</p><p className="text-xs text-gray-400">{h.date}</p></div>
+                </button>
+                <button onClick={()=>{const n=history.filter((_,j)=>j!==i);setHistory(n);localStorage.setItem("analysis_history",JSON.stringify(n));}}
+                  className="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-red-400 hover:bg-red-50 flex-shrink-0 text-xs transition-colors">✕</button>
+              </div>
             ))}
           </div>
         </div>
