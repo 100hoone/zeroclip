@@ -1267,7 +1267,7 @@ const GukbapTab = () => {
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"/>
                 <div className="absolute top-2 left-2">
-                  {item.distributor&&<span className="text-xs font-black px-2 py-0.5 rounded-lg text-white" style={{background:"rgba(0,0,0,0.6)"}}>{item.distributor}</span>}
+                  {item.genre&&<span className="text-xs font-black px-2 py-0.5 rounded-lg text-white" style={{background:"rgba(0,0,0,0.6)"}}>{item.genre}</span>}
                 </div>
                 <div className="absolute top-2 right-2">
                   <span className="text-xs font-black px-2 py-0.5 rounded-lg text-white" style={{background:SAFETY_COLOR[item.safety]||"#22c55e"}}>{item.safety}</span>
@@ -1279,11 +1279,8 @@ const GukbapTab = () => {
                 )}
               </div>
               <p className="text-sm font-black text-gray-900 leading-snug mb-0.5">{item.title}</p>
-              {item.producer&&<p className="text-xs text-gray-400">제작 {item.producer}</p>}
-              <div className="flex items-center gap-1 mt-1 flex-wrap">
-                <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-orange-50 text-orange-500">{item.genre}</span>
-                {item.platform&&<span className="text-xs text-gray-400">{item.platform}</span>}
-              </div>
+              {item.producer&&<p className="text-xs text-gray-500">제작 {item.producer}</p>}
+              {item.distributor&&<p className="text-xs text-gray-500">배급 {item.distributor}</p>}
             </div>
           ))}
         </div>
