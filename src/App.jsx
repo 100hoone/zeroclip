@@ -2405,7 +2405,7 @@ const AnalysisTab = ({ cards, geminiKey, onOpenSettings }) => {
                     <img src={c.thumbnail} className="w-14 h-9 object-cover rounded-lg flex-shrink-0"/>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-gray-900 truncate">{c.title}</p>
-                      <p className="text-xs text-gray-400">{c.channel} · {c.multiplier}</p>
+                      <p className="text-xs text-gray-400">{c.channel} · 조회수 {c.views}</p>
                     </div>
                   </div>
                 ))}

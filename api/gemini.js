@@ -25,7 +25,8 @@ export default async function handler(req, res) {
 
   const parts = [];
   if (videoUrl) {
-    parts.push({ fileData: { mimeType: 'video/mp4', fileUri: videoUrl } });
+    // YouTube URL은 mimeType 없이 fileUri만 전달
+    parts.push({ fileData: { fileUri: videoUrl } });
   }
   parts.push({ text: textPrompt });
 
