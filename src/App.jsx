@@ -2284,24 +2284,31 @@ const AnalysisTab = ({ cards, geminiKey, onOpenSettings }) => {
       for (const card of targets) {
         const videoUrl = card.url;
         const prompt = [
-          `이 유튜브 영상을 직접 보고 분석해주세요.`,
-          `쇼츠로 만들기 좋은 클립을 5개 찾아서 아래 형식으로 작성하세요.`,
+          `이 유튜브 영상을 직접 보고 아래 형식으로 분석해주세요.`,
           `절대 인사말 없이 바로 본론만 출력하세요.`,
           ``,
-          `📍 클립 1 - [장면을 한 줄로 임팩트 있게 표현한 제목]`,
+          `🎬 작품 정보`,
+          `작품명: (드라마/영화/예능 이름)`,
+          `회차: (몇 화인지, 파악 가능하면)`,
+          `장르: (드라마/영화/예능 등)`,
           ``,
-          `줄거리: 이 장면 직전에 무슨 일이 있었는지 → 이 장면에서 무슨 일이 일어나는지 → 이후 어떻게 이어지는지. 4~5문장으로 자세하게.`,
-          `타임라인: 영상에서 직접 확인한 정확한 구간 (예: 0:32~0:58)`,
-          `하이라이트 대사: 영상에서 직접 들은 대사 그대로 인용`,
-          `후킹 포인트: 시청자가 왜 이 장면에 반응하는지, 어떤 감정을 건드리는지`,
-          `추천 제목 3개:`,
-          `① 음슴체/명사형, 등장인물 이름 포함, "~요?" 절대 금지`,
-          `② 음슴체/명사형, 등장인물 이름 포함, "~요?" 절대 금지`,
-          `③ 음슴체/명사형, 등장인물 이름 포함, "~요?" 절대 금지`,
+          `📖 줄거리`,
+          `이 클립에서 어떤 일이 벌어지는지 기승전결로 5~7문장. 앞뒤 맥락까지 포함해서 쇼츠 나레이션으로 바로 쓸 수 있는 수준으로 작성.`,
           ``,
-          `---`,
+          `🎯 후킹 요소`,
+          `왜 이 영상이 잘 됐는지, 시청자의 어떤 감정을 건드리는지 구체적으로.`,
           ``,
-          `📍 클립 2~5도 동일한 형식으로 작성`,
+          `💬 하이라이트 대사`,
+          `이 영상에서 가장 임팩트 있는 대사 2~3개를 영상에서 들은 그대로 인용.`,
+          ``,
+          `✏️ 추천 제목 5개`,
+          `음슴체 또는 명사형으로 끝낼 것. 등장인물 이름 포함. "~요?" "~나요?" 절대 금지.`,
+          `예시처럼: "문동은이 당한 충격적인 학교폭력 실화" / "연진이가 동은한테 저지른 짓 ㄷㄷ"`,
+          ``,
+          `🎙️ 나레이션 구성`,
+          `오프닝 훅 (3초 안에 시청자 잡는 첫 문장):`,
+          `본문 나레이션 (이 클립을 쇼츠로 만들 때 쓸 전체 나레이션):`,
+          `클로징 (마지막 문장):`,
         ].join("\n");
 
         const res = await fetch("/api/gemini", {
@@ -2330,15 +2337,16 @@ const AnalysisTab = ({ cards, geminiKey, onOpenSettings }) => {
 
   const renderResult = (text) => text.split("\n").map((line,i)=>{
     const bold = line.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
-    const isClipHeader = line.startsWith("📍");
+    const isSectionHeader = ["🎬","📖","🎯","💬","✏️","🎙️"].some(e=>line.startsWith(e));
     const isDivider = line.trim().startsWith("===");
-    const isVideoHeader = line.startsWith("🎬");
-    const isLabel = ["줄거리:","타임라인:","하이라이트 대사:","후킹 포인트:","추천 제목 3개:"].some(l=>line.startsWith(l));
+    const isVideoHeader = line.startsWith("🔗");
+    const isLabel = ["작품명:","회차:","장르:","오프닝 훅","본문 나레이션","클로징"].some(l=>line.startsWith(l));
+    const isNum = /^[①②③④⑤]/.test(line);
     if (isDivider) return <hr key={i} className="my-6 border-gray-200"/>;
-    if (isVideoHeader) return <p key={i} className="text-lg font-black text-gray-900 mb-3" dangerouslySetInnerHTML={{__html:bold}}/>;
-    if (isClipHeader) return <p key={i} className="text-base font-black text-gray-900 mt-6 mb-2 pb-1 border-b-2 border-orange-200" dangerouslySetInnerHTML={{__html:bold}}/>;
-    if (isLabel) return <p key={i} className="text-sm font-black text-orange-500 mt-3 mb-0.5" dangerouslySetInnerHTML={{__html:bold}}/>;
-    if (line.startsWith("①")||line.startsWith("②")||line.startsWith("③")) return <p key={i} className="text-sm text-gray-800 bg-gray-50 rounded-xl px-3 py-2 mt-1" dangerouslySetInnerHTML={{__html:bold}}/>;
+    if (isVideoHeader) return <p key={i} className="text-base font-black text-gray-900 mb-2" dangerouslySetInnerHTML={{__html:bold}}/>;
+    if (isSectionHeader) return <p key={i} className="text-base font-black text-gray-900 mt-6 mb-2 pb-1 border-b-2 border-orange-200" dangerouslySetInnerHTML={{__html:bold}}/>;
+    if (isLabel) return <p key={i} className="text-sm font-black text-orange-500 mt-2 mb-0.5" dangerouslySetInnerHTML={{__html:bold}}/>;
+    if (isNum) return <p key={i} className="text-sm text-gray-800 bg-gray-50 rounded-xl px-3 py-2 mt-1" dangerouslySetInnerHTML={{__html:bold}}/>;
     if (line==="") return <div key={i} className="h-1"/>;
     return <p key={i} className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{__html:bold}}/>;
   });
