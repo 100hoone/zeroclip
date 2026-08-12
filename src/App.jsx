@@ -308,21 +308,30 @@ const SubCatDropdown = ({ mainCat, subCat, onSelect, cards, color }) => {
 // 태그 필터 드롭다운
 // ─────────────────────────────────────────────
 const TagFilter = ({ allTags, activeTag, setActiveTag }) => {
+  const [open, setOpen] = useState(false);
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      <span className="text-gray-300 flex-shrink-0" title="태그 필터">
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
-      </span>
-      <button onClick={()=>setActiveTag("")}
-        className={`text-xs px-2.5 py-1 rounded-xl font-bold transition-all flex-shrink-0 ${!activeTag?"bg-gray-900 text-white":"bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
-        전체
+      <button onClick={()=>setOpen(o=>!o)}
+        className={`flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-xl border transition-all ${activeTag?"border-gray-900 bg-gray-900 text-white":"border-gray-200 bg-white text-gray-500 hover:bg-gray-50"}`}>
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+        {activeTag ? activeTag : "태그"}
+        {activeTag&&<button onClick={e=>{e.stopPropagation();setActiveTag("");}} className="ml-0.5 text-gray-400 hover:text-white">✕</button>}
+        <svg className={`w-3 h-3 transition-transform ${open?"rotate-180":""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
       </button>
-      {allTags.map(tag=>(
-        <button key={tag} onClick={()=>setActiveTag(activeTag===tag?"":tag)}
-          className={`text-xs px-2.5 py-1 rounded-xl font-bold transition-all flex-shrink-0 ${activeTag===tag?"bg-gray-900 text-white":"bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
-          {tag}
-        </button>
-      ))}
+      {open&&(
+        <div className="flex flex-wrap gap-1.5">
+          <button onClick={()=>{setActiveTag("");setOpen(false);}}
+            className={`text-xs px-2.5 py-1 rounded-xl font-bold transition-all ${!activeTag?"bg-gray-900 text-white":"bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+            전체
+          </button>
+          {allTags.map(tag=>(
+            <button key={tag} onClick={()=>{setActiveTag(activeTag===tag?"":tag);setOpen(false);}}
+              className={`text-xs px-2.5 py-1 rounded-xl font-bold transition-all ${activeTag===tag?"bg-gray-900 text-white":"bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -514,11 +523,13 @@ const MyViewsModal = ({ item, onClose, onSave }) => {
 // ─────────────────────────────────────────────
 // 설정 모달
 // ─────────────────────────────────────────────
-const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory, onAddSub, onRemoveSub, onFixDates, onFixThumbnails, onRecalcMultipliers, onChangePassword }) => {
+const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, openAiKey, onSaveOpenAi, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory, onAddSub, onRemoveSub, onFixDates, onFixThumbnails, onRecalcMultipliers, onChangePassword }) => {
   const [key, setKey]         = useState(apiKey);
   const [gKey, setGKey]       = useState(geminiKey);
+  const [oKey, setOKey]       = useState(openAiKey);
   const [showYt, setShowYt]   = useState(false);
   const [showGm, setShowGm]   = useState(false);
+  const [showOai, setShowOai] = useState(false);
   const [newTag, setNewTag]   = useState("");
   const [newCatName, setNewCatName]   = useState("");
   const [newCatEmoji, setNewCatEmoji] = useState("🎬");
@@ -550,6 +561,22 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
               <button onClick={()=>setShowYt(s=>!s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{showYt?"숨김":"표시"}</button>
             </div>
             {key&&key.startsWith("AIza")&&<p className="text-xs text-green-600 font-bold mt-1.5">✓ 유효한 키 형식이에요</p>}
+          </div>
+
+          {/* OpenAI API 키 */}
+          <div className="bg-gray-50 rounded-2xl p-4 mb-3">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-base">🤖</span>
+              <label className="text-xs font-black text-gray-600">ChatGPT (OpenAI) API 키</label>
+              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer"
+                className="ml-auto text-xs text-blue-500 font-bold hover:underline">발급받기 →</a>
+            </div>
+            <div className="relative">
+              <input type={showOai?"text":"password"} value={oKey} onChange={e=>setOKey(e.target.value)} placeholder="sk-..."
+                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 pr-12 outline-none font-mono bg-white"/>
+              <button onClick={()=>setShowOai(s=>!s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{showOai?"숨김":"표시"}</button>
+            </div>
+            {oKey&&oKey.startsWith("sk-")&&<p className="text-xs text-green-600 font-bold mt-1.5">✓ 유효한 키 형식이에요</p>}
           </div>
 
           {/* Gemini API 키 */}
@@ -683,7 +710,7 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
           </div>
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-gray-500">취소</button>
-            <button onClick={()=>{onSave(key);onSaveGemini(gKey);onClose();}} className="flex-1 py-3 rounded-2xl text-sm font-black text-gray-900" style={{background:"#FF8C00"}}>저장</button>
+            <button onClick={()=>{onSave(key);onSaveGemini(gKey);onSaveOpenAi(oKey);onClose();}} className="flex-1 py-3 rounded-2xl text-sm font-black text-gray-900" style={{background:"#FF8C00"}}>저장</button>
           </div>
         </div>
       </div>
@@ -2206,6 +2233,137 @@ ${item.script?`\n📄 대본:\n${item.script}`:""}
 // ─────────────────────────────────────────────
 // 대시보드 탭
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// 분석 탭
+// ─────────────────────────────────────────────
+const AnalysisTab = ({ openAiKey, onOpenSettings }) => {
+  const [title, setTitle]     = useState("");
+  const [result, setResult]   = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
+  const [history, setHistory] = useState(()=>{ try{ return JSON.parse(localStorage.getItem("analysis_history")||"[]"); }catch{ return []; } });
+
+  const analyze = async () => {
+    if (!title.trim()) return;
+    if (!openAiKey||!openAiKey.startsWith("sk-")) {
+      setError("⚙️ 설정에서 OpenAI API 키를 먼저 등록해주세요");
+      return;
+    }
+    setLoading(true); setError(""); setResult("");
+    try {
+      const res = await fetch("/api/openai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key: openAiKey, title: title.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error||"오류 발생"); setLoading(false); return; }
+      setResult(data.result);
+      // 히스토리 저장
+      const newHistory = [{ title: title.trim(), result: data.result, date: new Date().toLocaleDateString("ko") }, ...history].slice(0, 10);
+      setHistory(newHistory);
+      localStorage.setItem("analysis_history", JSON.stringify(newHistory));
+    } catch(e) { setError("오류: "+e.message); }
+    setLoading(false);
+  };
+
+  // 마크다운 굵게 처리
+  const renderResult = (text) => {
+    return text.split("\n").map((line, i) => {
+      const bold = line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      const isHeader = line.startsWith("🎬")||line.startsWith("✂️")||line.startsWith("📝")||line.startsWith("🎙️")||line.startsWith("💬");
+      return (
+        <p key={i} className={`${isHeader?"text-sm font-black text-gray-900 mt-4 mb-1":"text-sm text-gray-700 leading-relaxed"} ${line===""?"mb-2":""}`}
+          dangerouslySetInnerHTML={{__html: bold}}/>
+      );
+    });
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-6">
+      {/* 헤더 */}
+      <div className="text-center mb-8">
+        <h2 className="text-2xl font-black text-gray-900 mb-2">🔍 작품 분석</h2>
+        <p className="text-sm text-gray-400">작품명 입력 하나로 제목·클립·대사 전부 뽑아드려요</p>
+      </div>
+
+      {/* API 키 없을 때 안내 */}
+      {(!openAiKey||!openAiKey.startsWith("sk-"))&&(
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-black text-amber-700">⚙️ OpenAI API 키 등록 필요</p>
+            <p className="text-xs text-amber-600 mt-0.5">설정에서 ChatGPT API 키를 등록해주세요</p>
+          </div>
+          <button onClick={onOpenSettings} className="text-xs font-black px-3 py-1.5 rounded-xl text-white" style={{background:"#FF8C00"}}>설정 열기</button>
+        </div>
+      )}
+
+      {/* 입력 */}
+      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 mb-6">
+        <label className="text-xs font-black text-gray-600 block mb-2">🎬 작품명 입력</label>
+        <div className="flex gap-3">
+          <input
+            value={title} onChange={e=>setTitle(e.target.value)}
+            onKeyDown={e=>e.key==="Enter"&&analyze()}
+            placeholder="예: 더 글로리, 오징어게임, 이상한 변호사 우영우..."
+            className="flex-1 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-orange-300"/>
+          <button onClick={analyze} disabled={loading||!title.trim()}
+            className="px-6 py-3 rounded-2xl text-sm font-black text-white disabled:opacity-40 flex-shrink-0 flex items-center gap-2"
+            style={{background:"#FF8C00"}}>
+            {loading
+              ? <><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"/><span>분석 중</span></>
+              : <span>딸깍 분석 ✨</span>
+            }
+          </button>
+        </div>
+        {error&&<p className="text-xs text-red-500 mt-2">{error}</p>}
+        <p className="text-xs text-gray-400 mt-2">드라마·영화·예능 모두 가능해요 · ChatGPT가 즉시 분석해드려요</p>
+      </div>
+
+      {/* 결과 */}
+      {loading&&(
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 text-center">
+          <div className="w-10 h-10 rounded-full border-4 border-gray-200 border-t-orange-400 animate-spin mx-auto mb-4"/>
+          <p className="text-sm font-bold text-gray-500">"{title}" 분석 중...</p>
+          <p className="text-xs text-gray-400 mt-1">인기 구간·추천 클립·제목까지 찾고 있어요</p>
+        </div>
+      )}
+
+      {result&&!loading&&(
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-base font-black text-gray-900">📋 "{title}" 분석 결과</p>
+            <button onClick={()=>{ navigator.clipboard.writeText(result); alert("복사됐어요!"); }}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600">복사</button>
+          </div>
+          <div className="space-y-0.5">
+            {renderResult(result)}
+          </div>
+        </div>
+      )}
+
+      {/* 히스토리 */}
+      {history.length>0&&!result&&!loading&&(
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
+          <p className="text-xs font-black text-gray-500 mb-3">📂 최근 분석 기록</p>
+          <div className="space-y-2">
+            {history.map((h,i)=>(
+              <button key={i} onClick={()=>{ setTitle(h.title); setResult(h.result); }}
+                className="w-full text-left flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors">
+                <span className="text-lg">🎬</span>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">{h.title}</p>
+                  <p className="text-xs text-gray-400">{h.date}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Dashboard = ({ cards, allTags }) => {
   if (cards.length === 0) return (
     <div className="flex flex-col items-center justify-center py-24 text-gray-300">
@@ -2630,6 +2788,7 @@ export default function ZeroClip() {
   const [allTags, setAllTags]       = useState(DEFAULT_TAGS);
   const [apiKey, setApiKey]         = useState(()=>localStorage.getItem("yt_api_key")||"");
   const [geminiKey, setGeminiKey]   = useState(()=>localStorage.getItem("gemini_api_key")||"");
+  const [openAiKey, setOpenAiKey]   = useState(()=>localStorage.getItem("openai_api_key")||"");
   const [autoSyncing, setAutoSyncing] = useState(false);
   const [lastSynced, setLastSynced]   = useState(()=>localStorage.getItem("zc_last_synced")||"");
 
@@ -2786,6 +2945,7 @@ export default function ZeroClip() {
   };
 
   const saveGeminiKey= key => { setGeminiKey(key); localStorage.setItem("gemini_api_key", key); };
+  const saveOpenAiKey= key => { setOpenAiKey(key); localStorage.setItem("openai_api_key", key); };
   const addTag    = tag => { if (!allTags.includes(tag)) setAllTags(p=>[...p,tag]); };
   const removeTag = tag => { setAllTags(p=>p.filter(t=>t!==tag)); setCards(p=>p.map(c=>({...c,tags:c.tags?.filter(t=>t!==tag)||[]}))); };
 
@@ -2883,7 +3043,7 @@ export default function ZeroClip() {
 
           {/* 탭 */}
           <div className="flex gap-1 mb-0">
-            {[{key:"gallery",label:"📦 자산리스트"},{key:"channels",label:"📡 채널"},{key:"gukbap",label:"🍚 국밥리스트"},{key:"dashboard",label:"📊 대시보드"},{key:"mychannel",label:"📺 내 채널"}].map(t=>(
+            {[{key:"gallery",label:"📦 자산리스트"},{key:"gukbap",label:"🍚 국밥리스트"},{key:"analysis",label:"🔍 분석"},{key:"channels",label:"📡 채널"}].map(t=>(
               <button key={t.key} onClick={()=>setTab(t.key)}
                 className={`px-4 py-2 text-xs font-bold rounded-t-xl transition-all ${tab===t.key?"bg-gray-900 text-white":"text-gray-500 hover:text-gray-700"}`}>
                 {t.label}
@@ -2917,10 +3077,8 @@ export default function ZeroClip() {
       {/* ── 탭 콘텐츠 ── */}
       {tab==="gukbap" ? (
         <GukbapTab/>
-      ) : tab==="dashboard" ? (
-        <Dashboard cards={filtered} allTags={allTags}/>
-      ) : tab==="mychannel" ? (
-        <MyChannelTab refCards={cards} apiKey={apiKey} geminiKey={geminiKey}/>
+      ) : tab==="analysis" ? (
+        <AnalysisTab openAiKey={openAiKey} onOpenSettings={()=>setShowSettings(true)}/>
       ) : tab==="channels" ? (
         <ChannelsTab cards={cards} refChannels={refChannels} saveRefChannels={saveRefChannels} onUpdateCards={saveCat} apiKey={apiKey} onBulkCatChange={(chName,mainCat,subCat)=>{
           setCards(p=>{ const n=p.map(c=>c.channel===chName?{...c,mainCat,subCat}:c); localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
@@ -2970,7 +3128,7 @@ export default function ZeroClip() {
       {catEditTarget    &&<CatEditModal      item={catEditTarget} onClose={()=>setCatEditTarget(null)} onSave={saveCat}/>}
       {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)} geminiKey={geminiKey}/>}
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
-      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub} onFixDates={fixCardDates} onFixThumbnails={fixThumbnails} onRecalcMultipliers={recalcMultipliers} onChangePassword={pw=>{localStorage.setItem("zc_password",pw);}}/>}
+      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} openAiKey={openAiKey} onSaveOpenAi={saveOpenAiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub} onFixDates={fixCardDates} onFixThumbnails={fixThumbnails} onRecalcMultipliers={recalcMultipliers} onChangePassword={pw=>{localStorage.setItem("zc_password",pw);}}/>}
       {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)} apiKey={apiKey}/>}
       {showCategoryFetch&&<CategoryAutoFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowCategoryFetch(false)}/>}
       {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowChannelFetch(false)}
