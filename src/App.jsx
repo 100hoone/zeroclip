@@ -2255,31 +2255,28 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
     try {
       const prompt = [
         `당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다.`,
-        `초보 크리에이터가 "${title.trim()}"의 클립을 보고 바로 따라 만들 수 있도록 실용적으로 분석해주세요.`,
+        `절대 인사말, 서론, 마무리 말 없이 바로 분석 내용만 출력하세요.`,
         ``,
-        `쇼츠로 만들기 좋은 클립 5개를 아래 형식으로 정확히 작성해주세요.`,
+        `"${title.trim()}"에서 유튜브 쇼츠로 만들기 좋은 클립 5개를 아래 형식으로 작성하세요.`,
         `각 클립은 반드시 서로 다른 장면이어야 합니다.`,
         ``,
-        `📍 클립 1 - [장면을 한 줄로 표현한 제목]`,
+        `📍 클립 1 - [장면을 한 줄로 임팩트 있게 표현한 제목]`,
         ``,
-        `줄거리: 이 장면에서 어떤 일이 일어나는지 2~3문장 설명`,
-        `타임라인: 몇 화 몇 분 구간 (예: 3화 12분~14분)`,
-        `하이라이트 대사: "이 장면에서 가장 임팩트 있는 대사를 직접 인용"`,
-        `후킹 포인트: 시청자가 왜 이 장면에 반응하는지, 어떤 감정을 건드리는지`,
+        `줄거리: 이 장면 직전에 무슨 일이 있었는지 → 이 장면에서 무슨 일이 일어나는지 → 이 장면 이후 어떻게 이어지는지. 쇼츠 기승전결을 만들 수 있도록 앞뒤 맥락까지 포함해서 4~5문장으로 자세하게 작성.`,
+        `타임라인: 대략적인 구간 (AI 추정, 실제와 다를 수 있음)`,
+        `하이라이트 대사: 이 장면에서 가장 임팩트 있는 대사 (기억나는 대로 최대한 정확하게, 불확실하면 "(유사 대사)"라고 표시)`,
+        `후킹 포인트: 시청자가 왜 이 장면에 반응하는지, 어떤 감정을 건드리는지 구체적으로`,
         `추천 제목 3개:`,
-        `① (궁금증 유발형)`,
-        `② (반전/충격형)`,
-        `③ (공감형)`,
+        `① (궁금증 유발형 - 끝까지 보게 만드는 제목)`,
+        `② (반전/충격형 - 예상 못한 사실을 드러내는 제목)`,
+        `③ (공감형 - 시청자 감정을 건드리는 제목)`,
         ``,
         `---`,
         ``,
-        `📍 클립 2 - [장면을 한 줄로 표현한 제목]`,
-        `(동일한 형식으로)`,
+        `📍 클립 2 - [장면을 한 줄로 임팩트 있게 표현한 제목]`,
+        `(동일한 형식)`,
         ``,
-        `(클립 3, 4, 5도 동일하게 작성)`,
-        ``,
-        `모든 대사는 실제 작품의 대사를 그대로 인용하세요.`,
-        `제목은 실제 유튜브에 올릴 수 있는 수준으로 구체적으로 작성하세요.`,
+        `📍 클립 3, 4, 5도 동일하게 작성`,
       ].join("\n");
       const res = await fetch("/api/gemini", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ key:geminiKey, prompt }) });
       const data = await res.json();
@@ -2343,6 +2340,9 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
           <div className="flex items-center justify-between mb-4">
             <p className="text-base font-black text-gray-900">📋 "{title}" 분석 결과</p>
             <button onClick={()=>{navigator.clipboard.writeText(result);alert("복사됐어요!");}} className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600">복사</button>
+          </div>
+          <div className="bg-amber-50 rounded-xl px-3 py-2 mb-4">
+            <p className="text-xs text-amber-700">⚠️ 타임라인과 대사는 AI 추정값이에요. 실제 영상에서 직접 확인 후 사용하세요.</p>
           </div>
           <div className="space-y-0.5">{renderResult(result)}</div>
         </div>
