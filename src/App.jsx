@@ -1196,8 +1196,7 @@ const GukbapTab = () => {
       // 2. 백그라운드로 GitHub 저장
       await saveToGitHub(newList);
       alert("✅ 저장됐어요!");
-    } catch(e) { alert("GitHub 저장 오류: "+e.message+"
-(로컬에는 저장됐어요)"); }
+    } catch(e) { alert("GitHub 저장 오류: "+e.message); }
     setSaving(false);
   };
 
