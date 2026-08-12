@@ -2289,17 +2289,20 @@ const AnalysisTab = ({ openAiKey, onOpenSettings }) => {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
         body: JSON.stringify({
-          model: "gpt-4o",
+          model: "gpt-4o-mini",
           messages: [
-            { role: "system", content: "당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다. 절대 인사말, 서론, 마무리 말 없이 바로 분석 내용만 출력하세요. 한국어로 답변하세요." },
+            { role: "system", content: "당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다. 절대 인사말, 서론, 마무리 말 없이 바로 분석 내용만 출력하세요. 한국어로 답변하세요. 작품의 실제 내용을 웹에서 검색해서 정확한 장면 정보를 제공하세요." },
             { role: "user", content: prompt }
           ],
+          tools: [{ type: "web_search_preview" }],
           max_tokens: 4000, temperature: 0.7
         })
       });
       const data = await res.json();
       if (data.error) { setError(data.error.message); setLoading(false); return; }
-      const result = data.choices?.[0]?.message?.content || "";
+      // 웹 검색 포함 응답 파싱
+      const result = data.choices?.[0]?.message?.content ||
+        data.output?.find(o=>o.type==="message")?.content?.find(c=>c.type==="output_text")?.text || "";
       if (!result) { setError("응답이 비어있어요. 다시 시도해주세요."); setLoading(false); return; }
       setResult(result);
       const newHistory = [{ title:title.trim(), result, date:new Date().toLocaleDateString("ko") }, ...history].slice(0,10);
