@@ -2248,7 +2248,34 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
     if (!geminiKey||!geminiKey.startsWith("AIza")) { setError("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return; }
     setLoading(true); setError(""); setResult("");
     try {
-      const prompt = `당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다. 초보 크리에이터도 바로 따라 만들 수 있도록 구체적이고 실용적으로 답변하세요.\n\n"${title.trim()}" 작품을 유튜브 쇼츠로 만들려고 합니다.\n\n다음 형식으로 정확하게 답변해주세요:\n\n🎬 **인기 구간 TOP3**\n(어느 장면이 시청자 반응이 좋은지, 이유 포함)\n\n✂️ **추천 클립 3가지**\n(구체적인 장면 설명 + 왜 쇼츠로 잘 될지)\n\n📝 **제목(헤드라인) 예시 5개**\n(클릭하고 싶게 만드는 실제 쓸 수 있는 제목)\n\n🎙️ **나레이션 첫 문장 3가지**\n(시청자를 3초 안에 잡는 훅 문장)\n\n💬 **하이라이트 대사/명장면**\n(실제 대사나 장면 묘사, 쇼츠에 쓰기 좋은 것들)`;
+      const prompt = [
+        `당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다.`,
+        `초보 크리에이터가 "${title.trim()}"의 클립을 보고 바로 따라 만들 수 있도록 실용적으로 분석해주세요.`,
+        ``,
+        `쇼츠로 만들기 좋은 클립 5개를 아래 형식으로 정확히 작성해주세요.`,
+        `각 클립은 반드시 서로 다른 장면이어야 합니다.`,
+        ``,
+        `📍 클립 1 - [장면을 한 줄로 표현한 제목]`,
+        ``,
+        `줄거리: 이 장면에서 어떤 일이 일어나는지 2~3문장 설명`,
+        `타임라인: 몇 화 몇 분 구간 (예: 3화 12분~14분)`,
+        `하이라이트 대사: "이 장면에서 가장 임팩트 있는 대사를 직접 인용"`,
+        `후킹 포인트: 시청자가 왜 이 장면에 반응하는지, 어떤 감정을 건드리는지`,
+        `추천 제목 3개:`,
+        `① (궁금증 유발형)`,
+        `② (반전/충격형)`,
+        `③ (공감형)`,
+        ``,
+        `---`,
+        ``,
+        `📍 클립 2 - [장면을 한 줄로 표현한 제목]`,
+        `(동일한 형식으로)`,
+        ``,
+        `(클립 3, 4, 5도 동일하게 작성)`,
+        ``,
+        `모든 대사는 실제 작품의 대사를 그대로 인용하세요.`,
+        `제목은 실제 유튜브에 올릴 수 있는 수준으로 구체적으로 작성하세요.`,
+      ].join("\n");
       const res = await fetch("/api/gemini", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ key:geminiKey, prompt }) });
       const data = await res.json();
       if (!res.ok) { setError(data.error||"오류 발생"); setLoading(false); return; }
@@ -2261,9 +2288,16 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
   };
 
   const renderResult = (text) => text.split("\n").map((line,i)=>{
+    const isClipHeader = line.startsWith("📍");
+    const isDivider = line.trim() === "---";
+    const isLabel = ["줄거리:","타임라인:","하이라이트 대사:","후킹 포인트:","추천 제목 3개:"].some(l=>line.startsWith(l));
     const bold = line.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
-    const isH = ["🎬","✂️","📝","🎙️","💬"].some(e=>line.startsWith(e));
-    return <p key={i} className={isH?"text-sm font-black text-gray-900 mt-4 mb-1 first:mt-0":"text-sm text-gray-700 leading-relaxed"} dangerouslySetInnerHTML={{__html:bold}}/>;
+    if (isDivider) return <hr key={i} className="my-4 border-gray-100"/>;
+    if (isClipHeader) return <p key={i} className="text-base font-black text-gray-900 mt-5 mb-3 pb-1 border-b-2 border-orange-200" dangerouslySetInnerHTML={{__html:bold}}/>;
+    if (isLabel) return <p key={i} className="text-xs font-black text-orange-500 mt-3 mb-0.5" dangerouslySetInnerHTML={{__html:bold}}/>;
+    if (line.startsWith("①")||line.startsWith("②")||line.startsWith("③")) return <p key={i} className="text-sm text-gray-800 bg-gray-50 rounded-xl px-3 py-1.5 mt-1" dangerouslySetInnerHTML={{__html:bold}}/>;
+    if (line==="") return <div key={i} className="h-1"/>;
+    return <p key={i} className="text-sm text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{__html:bold}}/>;
   });
 
   return (
