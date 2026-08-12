@@ -2245,58 +2245,26 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
 
   const analyze = async () => {
     if (!title.trim()) return;
-    if (!geminiKey||!geminiKey.startsWith("AIza")) {
-      setError("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요");
-      return;
-    }
+    if (!geminiKey||!geminiKey.startsWith("AIza")) { setError("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return; }
     setLoading(true); setError(""); setResult("");
     try {
-      const prompt = `당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다. 초보 크리에이터도 바로 따라 만들 수 있도록 구체적이고 실용적으로 답변하세요.
-
-"${title.trim()}" 작품을 유튜브 쇼츠로 만들려고 합니다.
-
-다음 형식으로 정확하게 답변해주세요:
-
-🎬 **인기 구간 TOP3**
-(어느 장면이 시청자 반응이 좋은지, 이유 포함)
-
-✂️ **추천 클립 3가지**
-(구체적인 장면 설명 + 왜 쇼츠로 잘 될지)
-
-📝 **제목(헤드라인) 예시 5개**
-(클릭하고 싶게 만드는 실제 쓸 수 있는 제목)
-
-🎙️ **나레이션 첫 문장 3가지**
-(시청자를 3초 안에 잡는 훅 문장)
-
-💬 **하이라이트 대사/명장면**
-(실제 대사나 장면 묘사, 쇼츠에 쓰기 좋은 것들)`;
-
-      const res = await fetch("/api/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: geminiKey, prompt })
-      });
+      const prompt = `당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다. 초보 크리에이터도 바로 따라 만들 수 있도록 구체적이고 실용적으로 답변하세요.\n\n"${title.trim()}" 작품을 유튜브 쇼츠로 만들려고 합니다.\n\n다음 형식으로 정확하게 답변해주세요:\n\n🎬 **인기 구간 TOP3**\n(어느 장면이 시청자 반응이 좋은지, 이유 포함)\n\n✂️ **추천 클립 3가지**\n(구체적인 장면 설명 + 왜 쇼츠로 잘 될지)\n\n📝 **제목(헤드라인) 예시 5개**\n(클릭하고 싶게 만드는 실제 쓸 수 있는 제목)\n\n🎙️ **나레이션 첫 문장 3가지**\n(시청자를 3초 안에 잡는 훅 문장)\n\n💬 **하이라이트 대사/명장면**\n(실제 대사나 장면 묘사, 쇼츠에 쓰기 좋은 것들)`;
+      const res = await fetch("/api/gemini", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ key:geminiKey, prompt }) });
       const data = await res.json();
       if (!res.ok) { setError(data.error||"오류 발생"); setLoading(false); return; }
       setResult(data.result);
-      const newHistory = [{ title: title.trim(), result: data.result, date: new Date().toLocaleDateString("ko") }, ...history].slice(0, 10);
+      const newHistory = [{ title:title.trim(), result:data.result, date:new Date().toLocaleDateString("ko") }, ...history].slice(0,10);
       setHistory(newHistory);
       localStorage.setItem("analysis_history", JSON.stringify(newHistory));
     } catch(e) { setError("오류: "+e.message); }
     setLoading(false);
   };
 
-  const renderResult = (text) => {
-    return text.split("\n").map((line, i) => {
-      const bold = line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-      const isHeader = line.startsWith("🎬")||line.startsWith("✂️")||line.startsWith("📝")||line.startsWith("🎙️")||line.startsWith("💬");
-      return (
-        <p key={i} className={`${isHeader?"text-sm font-black text-gray-900 mt-4 mb-1":"text-sm text-gray-700 leading-relaxed"} ${line===""?"mb-2":""}`}
-          dangerouslySetInnerHTML={{__html: bold}}/>
-      );
-    });
-  };
+  const renderResult = (text) => text.split("\n").map((line,i)=>{
+    const bold = line.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
+    const isH = ["🎬","✂️","📝","🎙️","💬"].some(e=>line.startsWith(e));
+    return <p key={i} className={isH?"text-sm font-black text-gray-900 mt-4 mb-1 first:mt-0":"text-sm text-gray-700 leading-relaxed"} dangerouslySetInnerHTML={{__html:bold}}/>;
+  });
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
@@ -2304,37 +2272,26 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
         <h2 className="text-2xl font-black text-gray-900 mb-2">🔍 작품 분석</h2>
         <p className="text-sm text-gray-400">작품명 입력 하나로 제목·클립·대사 전부 뽑아드려요</p>
       </div>
-
       {(!geminiKey||!geminiKey.startsWith("AIza"))&&(
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-black text-amber-700">⚙️ Gemini API 키 등록 필요</p>
-            <p className="text-xs text-amber-600 mt-0.5">설정에서 Gemini API 키를 등록해주세요</p>
-          </div>
+          <div><p className="text-sm font-black text-amber-700">⚙️ Gemini API 키 등록 필요</p><p className="text-xs text-amber-600 mt-0.5">설정에서 Gemini API 키를 등록해주세요</p></div>
           <button onClick={onOpenSettings} className="text-xs font-black px-3 py-1.5 rounded-xl text-white" style={{background:"#FF8C00"}}>설정 열기</button>
         </div>
       )}
-
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 mb-6">
         <label className="text-xs font-black text-gray-600 block mb-2">🎬 작품명 입력</label>
         <div className="flex gap-3">
-          <input value={title} onChange={e=>setTitle(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&analyze()}
+          <input value={title} onChange={e=>setTitle(e.target.value)} onKeyDown={e=>e.key==="Enter"&&analyze()}
             placeholder="예: 더 글로리, 오징어게임, 이상한 변호사 우영우..."
             className="flex-1 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-orange-300"/>
           <button onClick={analyze} disabled={loading||!title.trim()}
-            className="px-6 py-3 rounded-2xl text-sm font-black text-white disabled:opacity-40 flex-shrink-0 flex items-center gap-2"
-            style={{background:"#FF8C00"}}>
-            {loading
-              ? <><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"/><span>분석 중</span></>
-              : <span>딸깍 분석 ✨</span>
-            }
+            className="px-6 py-3 rounded-2xl text-sm font-black text-white disabled:opacity-40 flex-shrink-0 flex items-center gap-2" style={{background:"#FF8C00"}}>
+            {loading?<><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"/><span>분석 중</span></>:<span>딸깍 분석 ✨</span>}
           </button>
         </div>
         {error&&<p className="text-xs text-red-500 mt-2">{error}</p>}
         <p className="text-xs text-gray-400 mt-2">드라마·영화·예능 모두 가능 · Gemini AI가 즉시 분석해드려요</p>
       </div>
-
       {loading&&(
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 text-center">
           <div className="w-10 h-10 rounded-full border-4 border-gray-200 border-t-orange-400 animate-spin mx-auto mb-4"/>
@@ -2342,156 +2299,23 @@ const AnalysisTab = ({ geminiKey, onOpenSettings }) => {
           <p className="text-xs text-gray-400 mt-1">인기 구간·추천 클립·제목까지 찾고 있어요</p>
         </div>
       )}
-
       {result&&!loading&&(
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-base font-black text-gray-900">📋 "{title}" 분석 결과</p>
-            <button onClick={()=>{ navigator.clipboard.writeText(result); alert("복사됐어요!"); }}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600">복사</button>
+            <button onClick={()=>{navigator.clipboard.writeText(result);alert("복사됐어요!");}} className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600">복사</button>
           </div>
           <div className="space-y-0.5">{renderResult(result)}</div>
         </div>
       )}
-
       {history.length>0&&!result&&!loading&&(
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
           <p className="text-xs font-black text-gray-500 mb-3">📂 최근 분석 기록</p>
           <div className="space-y-2">
             {history.map((h,i)=>(
-              <button key={i} onClick={()=>{ setTitle(h.title); setResult(h.result); }}
-                className="w-full text-left flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors">
+              <button key={i} onClick={()=>{setTitle(h.title);setResult(h.result);}} className="w-full text-left flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors">
                 <span className="text-lg">🎬</span>
-                <div>
-                  <p className="text-sm font-bold text-gray-900">{h.title}</p>
-                  <p className="text-xs text-gray-400">{h.date}</p>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-  const [title, setTitle]     = useState("");
-  const [result, setResult]   = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
-  const [history, setHistory] = useState(()=>{ try{ return JSON.parse(localStorage.getItem("analysis_history")||"[]"); }catch{ return []; } });
-
-  const analyze = async () => {
-    if (!title.trim()) return;
-    if (!openAiKey||!openAiKey.startsWith("sk-")) {
-      setError("⚙️ 설정에서 OpenAI API 키를 먼저 등록해주세요");
-      return;
-    }
-    setLoading(true); setError(""); setResult("");
-    try {
-      const res = await fetch("/api/openai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ key: openAiKey, title: title.trim() })
-      });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error||"오류 발생"); setLoading(false); return; }
-      setResult(data.result);
-      // 히스토리 저장
-      const newHistory = [{ title: title.trim(), result: data.result, date: new Date().toLocaleDateString("ko") }, ...history].slice(0, 10);
-      setHistory(newHistory);
-      localStorage.setItem("analysis_history", JSON.stringify(newHistory));
-    } catch(e) { setError("오류: "+e.message); }
-    setLoading(false);
-  };
-
-  // 마크다운 굵게 처리
-  const renderResult = (text) => {
-    return text.split("\n").map((line, i) => {
-      const bold = line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-      const isHeader = line.startsWith("🎬")||line.startsWith("✂️")||line.startsWith("📝")||line.startsWith("🎙️")||line.startsWith("💬");
-      return (
-        <p key={i} className={`${isHeader?"text-sm font-black text-gray-900 mt-4 mb-1":"text-sm text-gray-700 leading-relaxed"} ${line===""?"mb-2":""}`}
-          dangerouslySetInnerHTML={{__html: bold}}/>
-      );
-    });
-  };
-
-  return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      {/* 헤더 */}
-      <div className="text-center mb-8">
-        <h2 className="text-2xl font-black text-gray-900 mb-2">🔍 작품 분석</h2>
-        <p className="text-sm text-gray-400">작품명 입력 하나로 제목·클립·대사 전부 뽑아드려요</p>
-      </div>
-
-      {/* API 키 없을 때 안내 */}
-      {(!openAiKey||!openAiKey.startsWith("sk-"))&&(
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-black text-amber-700">⚙️ OpenAI API 키 등록 필요</p>
-            <p className="text-xs text-amber-600 mt-0.5">설정에서 ChatGPT API 키를 등록해주세요</p>
-          </div>
-          <button onClick={onOpenSettings} className="text-xs font-black px-3 py-1.5 rounded-xl text-white" style={{background:"#FF8C00"}}>설정 열기</button>
-        </div>
-      )}
-
-      {/* 입력 */}
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 mb-6">
-        <label className="text-xs font-black text-gray-600 block mb-2">🎬 작품명 입력</label>
-        <div className="flex gap-3">
-          <input
-            value={title} onChange={e=>setTitle(e.target.value)}
-            onKeyDown={e=>e.key==="Enter"&&analyze()}
-            placeholder="예: 더 글로리, 오징어게임, 이상한 변호사 우영우..."
-            className="flex-1 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-orange-300"/>
-          <button onClick={analyze} disabled={loading||!title.trim()}
-            className="px-6 py-3 rounded-2xl text-sm font-black text-white disabled:opacity-40 flex-shrink-0 flex items-center gap-2"
-            style={{background:"#FF8C00"}}>
-            {loading
-              ? <><div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"/><span>분석 중</span></>
-              : <span>딸깍 분석 ✨</span>
-            }
-          </button>
-        </div>
-        {error&&<p className="text-xs text-red-500 mt-2">{error}</p>}
-        <p className="text-xs text-gray-400 mt-2">드라마·영화·예능 모두 가능해요 · ChatGPT가 즉시 분석해드려요</p>
-      </div>
-
-      {/* 결과 */}
-      {loading&&(
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 text-center">
-          <div className="w-10 h-10 rounded-full border-4 border-gray-200 border-t-orange-400 animate-spin mx-auto mb-4"/>
-          <p className="text-sm font-bold text-gray-500">"{title}" 분석 중...</p>
-          <p className="text-xs text-gray-400 mt-1">인기 구간·추천 클립·제목까지 찾고 있어요</p>
-        </div>
-      )}
-
-      {result&&!loading&&(
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-base font-black text-gray-900">📋 "{title}" 분석 결과</p>
-            <button onClick={()=>{ navigator.clipboard.writeText(result); alert("복사됐어요!"); }}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600">복사</button>
-          </div>
-          <div className="space-y-0.5">
-            {renderResult(result)}
-          </div>
-        </div>
-      )}
-
-      {/* 히스토리 */}
-      {history.length>0&&!result&&!loading&&(
-        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
-          <p className="text-xs font-black text-gray-500 mb-3">📂 최근 분석 기록</p>
-          <div className="space-y-2">
-            {history.map((h,i)=>(
-              <button key={i} onClick={()=>{ setTitle(h.title); setResult(h.result); }}
-                className="w-full text-left flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-50 transition-colors">
-                <span className="text-lg">🎬</span>
-                <div>
-                  <p className="text-sm font-bold text-gray-900">{h.title}</p>
-                  <p className="text-xs text-gray-400">{h.date}</p>
-                </div>
+                <div><p className="text-sm font-bold text-gray-900">{h.title}</p><p className="text-xs text-gray-400">{h.date}</p></div>
               </button>
             ))}
           </div>
