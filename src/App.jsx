@@ -1111,9 +1111,11 @@ const GENRES = ["범죄스릴러","코미디","로맨스","드라마","예능","
 const GukbapTab = () => {
   const REPO = "100hoone/zeroclip";
   const FILE = "gukbap.json";
+  const LS_KEY = "gukbap_list";
 
-  const [list, setList]           = useState([]);
-  const [loading, setLoading]     = useState(true);
+  // localStorage를 1차 데이터소스로 사용
+  const [list, setList]           = useState(()=>{ try{ return JSON.parse(localStorage.getItem(LS_KEY)||"[]"); }catch{ return []; } });
+  const [syncing, setSyncing]     = useState(false);
   const [isAdmin, setIsAdmin]     = useState(false);
   const [adminPw, setAdminPw]     = useState("");
   const [adminToken, setAdminToken] = useState(()=>localStorage.getItem("gb_admin_token")||"");
@@ -1125,26 +1127,37 @@ const GukbapTab = () => {
   const [selected, setSelected]   = useState(null);
   const [form, setForm] = useState({ title:"", genre:"범죄스릴러", producer:"", distributor:"", platform:"", safety:"안전", memo:"", thumbnail:"" });
 
-  useEffect(()=>{ fetchList(); },[]);
+  // localStorage에 저장
+  const saveLocal = (newList) => {
+    setList(newList);
+    localStorage.setItem(LS_KEY, JSON.stringify(newList));
+  };
 
-  const fetchList = async () => {
-    setLoading(true);
+  // GitHub에서 최신 데이터 가져오기 (백그라운드 동기화)
+  const syncFromGitHub = async () => {
+    setSyncing(true);
     try {
       const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
-        headers: { Accept: "application/vnd.github.v3+json", "Cache-Control": "no-cache" }
+        headers: { Accept: "application/vnd.github.v3+json", "Cache-Control": "no-cache", "Pragma": "no-cache" },
+        cache: "no-store"
       });
       const data = await res.json();
       if (data.content) {
         const decoded = JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,"")))));
-        setList(Array.isArray(decoded)?decoded:[]);
+        if (Array.isArray(decoded)) {
+          saveLocal(decoded);
+        }
       }
-    } catch(e) { console.error(e); }
-    setLoading(false);
+    } catch(e) { console.error("GitHub sync failed:", e); }
+    setSyncing(false);
   };
 
+  useEffect(()=>{ syncFromGitHub(); },[]);
+
+  // GitHub에 저장
   const saveToGitHub = async (newList) => {
     const fileRes = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
-      headers: { Authorization: `token ${adminToken}`, Accept: "application/vnd.github.v3+json" }
+      headers: { Authorization: `token ${adminToken}`, Accept: "application/vnd.github.v3+json", cache: "no-store" }
     });
     const fileData = await fileRes.json();
     if (!fileRes.ok) throw new Error(fileData.message||"파일 조회 실패");
@@ -1158,7 +1171,6 @@ const GukbapTab = () => {
       })
     });
     if (!saveRes.ok) { const d = await saveRes.json(); throw new Error(d.message||"저장 실패"); }
-    return newList;
   };
 
   const handleLogin = () => {
@@ -1175,11 +1187,17 @@ const GukbapTab = () => {
       if (action==="add") newList.unshift({ id:Date.now(), ...item, addedAt:new Date().toISOString() });
       else if (action==="edit") { const i=newList.findIndex(x=>x.id===id); if(i>=0) newList[i]={...newList[i],...item}; }
       else if (action==="delete") newList=newList.filter(x=>x.id!==id);
-      await saveToGitHub(newList);
-      setList(newList); setShowForm(false); setEditItem(null);
+
+      // 1. 즉시 localStorage 저장 (화면 바로 반영)
+      saveLocal(newList);
+      setShowForm(false); setEditItem(null);
       setForm({title:"",genre:"범죄스릴러",producer:"",distributor:"",platform:"",safety:"안전",memo:"",thumbnail:""});
+
+      // 2. 백그라운드로 GitHub 저장
+      await saveToGitHub(newList);
       alert("✅ 저장됐어요!");
-    } catch(e) { alert("오류: "+e.message); }
+    } catch(e) { alert("GitHub 저장 오류: "+e.message+"
+(로컬에는 저장됐어요)"); }
     setSaving(false);
   };
 
@@ -1201,8 +1219,9 @@ const GukbapTab = () => {
           <h2 className="text-xl font-black text-gray-900">🍚 국밥리스트</h2>
           <p className="text-xs text-gray-400 mt-0.5">귤쌤이 직접 선별한 제작 안전 작품 모음</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={fetchList} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-400 hover:text-gray-700">🔄</button>
+        <div className="flex gap-2 items-center">
+          {syncing&&<span className="text-xs text-gray-400">동기화 중...</span>}
+          <button onClick={syncFromGitHub} disabled={syncing} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-400 bg-gray-100 hover:bg-gray-200 disabled:opacity-40">🔄</button>
           {isAdmin ? (
             <>
               <button onClick={()=>{setEditItem(null);setForm({title:"",genre:"범죄스릴러",producer:"",distributor:"",platform:"",safety:"안전",memo:"",thumbnail:""});setShowForm(true);}}
@@ -1218,29 +1237,29 @@ const GukbapTab = () => {
       </div>
 
       {/* 장르 탭 */}
-      <div className="flex gap-2 mb-6 flex-wrap">
-        {["전체",...genres].map(g=>(
-          <button key={g} onClick={()=>setFilterGenre(g)}
-            className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
-            style={filterGenre===g?{background:"#FF8C00",color:"white"}:{background:"#f3f4f6",color:"#6b7280"}}>
-            {g} {g==="전체"?list.length:list.filter(i=>i.genre===g).length}
-          </button>
-        ))}
-      </div>
+      {genres.length>0&&(
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {["전체",...genres].map(g=>(
+            <button key={g} onClick={()=>setFilterGenre(g)}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+              style={filterGenre===g?{background:"#FF8C00",color:"white"}:{background:"#f3f4f6",color:"#6b7280"}}>
+              {g} {g==="전체"?list.length:list.filter(i=>i.genre===g).length}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 카드 그리드 */}
-      {loading ? (
-        <div className="flex justify-center py-20"><div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-orange-400 animate-spin"/></div>
-      ) : filtered.length===0 ? (
+      {filtered.length===0 ? (
         <div className="flex flex-col items-center py-24 text-gray-300">
           <span className="text-5xl mb-3">🍚</span>
           <p className="font-bold text-gray-400">아직 등록된 작품이 없어요</p>
+          {isAdmin&&<p className="text-sm text-gray-300 mt-1">+ 작품 추가 버튼으로 등록해보세요</p>}
         </div>
       ) : (
         <div className="grid gap-5" style={{gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))"}}>
           {filtered.map(item=>(
             <div key={item.id} className="group cursor-pointer" onClick={()=>setSelected(selected?.id===item.id?null:item)}>
-              {/* 포스터 */}
               <div className="relative rounded-2xl overflow-hidden mb-3 shadow-sm" style={{aspectRatio:"2/3"}}>
                 {item.thumbnail ? (
                   <img src={item.thumbnail} className="w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105"/>
@@ -1260,7 +1279,6 @@ const GukbapTab = () => {
                   </div>
                 )}
               </div>
-              {/* 텍스트 */}
               <p className="text-sm font-black text-gray-900 leading-snug mb-0.5">{item.title}</p>
               {item.producer&&<p className="text-xs text-gray-400">제작 {item.producer}</p>}
               <div className="flex items-center gap-1 mt-1 flex-wrap">
@@ -1272,7 +1290,7 @@ const GukbapTab = () => {
         </div>
       )}
 
-      {/* 선택된 작품 상세 */}
+      {/* 하단 상세 */}
       {selected&&(
         <div className="fixed inset-x-0 bottom-0 z-40 p-4 pb-6" style={{background:"linear-gradient(to top, white 85%, transparent)"}}>
           <div className="max-w-2xl mx-auto bg-white rounded-3xl p-5 shadow-xl border border-gray-100">
@@ -1315,7 +1333,7 @@ const GukbapTab = () => {
         </div>
       )}
 
-      {/* 작품 추가/수정 폼 */}
+      {/* 작품 폼 */}
       {showForm&&(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
