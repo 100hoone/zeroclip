@@ -2284,7 +2284,7 @@ const AnalysisTab = ({ openAiKey, onOpenSettings }) => {
         ``,
         `📍 클립 3, 4, 5도 동일하게 작성`,
       ].join("\n");
-      const res = await fetch("/api/gemini", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ key:openAiKey, prompt }) });
+      const res = await fetch("/api/openai", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ key:openAiKey, prompt }) });
       const data = await res.json();
       if (!res.ok) { setError(data.error||"오류 발생"); setLoading(false); return; }
       setResult(data.result);
