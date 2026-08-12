@@ -1143,7 +1143,7 @@ const GukbapTab = () => {
 
   // localStorage를 1차 데이터소스로 사용
   const [list, setList]           = useState(()=>{ try{ return JSON.parse(localStorage.getItem(LS_KEY)||"[]"); }catch{ return []; } });
-  const [syncing, setSyncing]     = useState(false);
+  const [syncing, setSyncing]     = useState(true); // 처음엔 항상 동기화 중
   const [isAdmin, setIsAdmin]     = useState(false);
   const [adminPw, setAdminPw]     = useState("");
   const [adminToken, setAdminToken] = useState(()=>localStorage.getItem("gb_admin_token")||"");
@@ -1277,7 +1277,12 @@ const GukbapTab = () => {
       )}
 
       {/* 카드 그리드 */}
-      {filtered.length===0 ? (
+      {syncing && list.length === 0 ? (
+        <div className="flex flex-col items-center py-24">
+          <div className="w-8 h-8 rounded-full border-4 border-gray-200 border-t-orange-400 animate-spin mb-3"/>
+          <p className="text-sm text-gray-400">목록 불러오는 중...</p>
+        </div>
+      ) : filtered.length===0 ? (
         <div className="flex flex-col items-center py-24 text-gray-300">
           <span className="text-5xl mb-3">🍚</span>
           <p className="font-bold text-gray-400">아직 등록된 작품이 없어요</p>
