@@ -37,9 +37,10 @@ const PERIOD_OPTIONS = [
   { label:"직접 입력", value:"custom" },
 ];
 const SORT_OPTIONS = [
-  { label:"배수 순",   value:"multiplier" },
-  { label:"조회수 순", value:"views" },
-  { label:"업로드 순", value:"date" },
+  { label:"배수 순",     value:"multiplier" },
+  { label:"조회수 순",   value:"views" },
+  { label:"업로드 순",   value:"date" },
+  { label:"최신 등록순", value:"added" },
 ];
 
 const DEFAULT_TAGS = ["🔥급하게쓸것","📦장기보관","✅이미했음","❌경쟁채널있음","💡아이디어메모","⭐베스트레퍼"];
@@ -739,7 +740,7 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel }) => {
         const viewsStr = views>=10000000?`${(views/10000000).toFixed(1)}천만`:views>=1000000?`${(views/1000000).toFixed(0)}백만`:views>=10000?`${Math.round(views/10000)}만`:`${views}`;
         const daysDiff = Math.floor((Date.now()-new Date(v.snippet.publishedAt))/86400000);
         const daysAgo = daysDiff===0?"오늘":daysDiff<=3?`${daysDiff}일 전`:daysDiff<=14?"1주일 전":daysDiff<=45?"1개월 전":daysDiff<=75?"2개월 전":daysDiff<=105?"3개월 전":daysDiff<=210?"6개월 전":daysDiff<=395?"1년 전":"2년 전";
-        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multiplier}`, mainCat:selectedCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, channelUrl:channelUrl, thumbnail:v.snippet.thumbnails?.medium?.url||"", publishedAt:v.snippet?.publishedAt||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
+        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multiplier}`, mainCat:selectedCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, channelUrl:channelUrl, thumbnail:v.snippet.thumbnails?.medium?.url||"", publishedAt:v.snippet?.publishedAt||"", addedAt:new Date().toISOString(), bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
       })||[];
       setPreview(cards); setStep("preview");
     } catch(e) { setError("수집 중 오류가 발생했어요. API 키나 채널 URL을 확인해주세요."); }
@@ -911,7 +912,7 @@ const VideoAddModal = ({ onAdd, onClose, apiKey }) => {
       id: Date.now()+Math.random(),
       title, channel, views: views||"?", multiplier:"×?",
       mainCat: selectedCat, subCat:"", daysAgo:"직접추가",
-      url, thumbnail, bookmarked:false, memo:"", script:"", tags:[], myViews:""
+      url, thumbnail, addedAt:new Date().toISOString(), bookmarked:false, memo:"", script:"", tags:[], myViews:""
     });
     onClose();
   };
@@ -1007,7 +1008,7 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
         const viewsStr = views>=10000000?`${(views/10000000).toFixed(1)}천만`:views>=1000000?`${(views/1000000).toFixed(0)}백만`:views>=10000?`${Math.round(views/10000)}만`:`${views}`;
         const daysDiff = Math.floor((Date.now()-new Date(v.snippet.publishedAt))/86400000);
         const daysAgo  = daysDiff===0?"오늘":daysDiff<=3?`${daysDiff}일 전`:daysDiff<=14?"1주일 전":daysDiff<=45?"1개월 전":daysDiff<=75?"2개월 전":daysDiff<=105?"3개월 전":daysDiff<=210?"6개월 전":daysDiff<=395?"1년 전":"2년 전";
-        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multi}`, mainCat:"전체", subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, thumbnail:v.snippet.thumbnails?.medium?.url||"", publishedAt:v.snippet?.publishedAt||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
+        return { id:v.id, title:v.snippet.title, channel:v.snippet.channelTitle, views:viewsStr, multiplier:`×${multi}`, mainCat:"전체", subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, thumbnail:v.snippet.thumbnails?.medium?.url||"", publishedAt:v.snippet?.publishedAt||"", addedAt:new Date().toISOString(), bookmarked:false, memo:"", script:"", tags:[], myViews:"", _selected:true };
       });
       setPreview(cards); setStep("preview");
     } catch(e) { setError("수집 중 오류가 발생했어요."); }
@@ -2817,6 +2818,7 @@ export default function ZeroClip() {
       if (sortBy==="multiplier") return dir*(parseFloat(b.multiplier?.replace("×","")||0)-parseFloat(a.multiplier?.replace("×","")||0));
       if (sortBy==="views") return dir*(toViewsNum(b.views)-toViewsNum(a.views));
       if (sortBy==="date") return dir*(getCardDays(a)-getCardDays(b));
+      if (sortBy==="added") return dir*(new Date(b.addedAt||0)-new Date(a.addedAt||0));
       return 0;
     });
 
@@ -2881,7 +2883,7 @@ export default function ZeroClip() {
 
           {/* 탭 */}
           <div className="flex gap-1 mb-0">
-            {[{key:"gallery",label:"🗂 갤러리"},{key:"channels",label:"📡 채널"},{key:"gukbap",label:"🍚 국밥리스트"},{key:"dashboard",label:"📊 대시보드"},{key:"mychannel",label:"📺 내 채널"}].map(t=>(
+            {[{key:"gallery",label:"📦 자산리스트"},{key:"channels",label:"📡 채널"},{key:"gukbap",label:"🍚 국밥리스트"},{key:"dashboard",label:"📊 대시보드"},{key:"mychannel",label:"📺 내 채널"}].map(t=>(
               <button key={t.key} onClick={()=>setTab(t.key)}
                 className={`px-4 py-2 text-xs font-bold rounded-t-xl transition-all ${tab===t.key?"bg-gray-900 text-white":"text-gray-500 hover:text-gray-700"}`}>
                 {t.label}
