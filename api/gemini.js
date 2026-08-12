@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
   const body = JSON.stringify({
     contents: [{ parts }],
-    generationConfig: { temperature: 0.3, maxOutputTokens: 4096 }
+    generationConfig: { temperature: 0.3, maxOutputTokens: 8192 }
   });
 
   for (const model of MODELS) {
