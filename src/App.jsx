@@ -2289,7 +2289,7 @@ const AnalysisTab = ({ openAiKey, onOpenSettings }) => {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "gpt-4o",
           messages: [
             { role: "system", content: "당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다. 절대 인사말, 서론, 마무리 말 없이 바로 분석 내용만 출력하세요. 한국어로 답변하세요." },
             { role: "user", content: prompt }
