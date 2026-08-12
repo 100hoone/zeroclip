@@ -9,6 +9,7 @@ export default async function handler(req, res) {
   if (!key) return res.status(400).json({ error: "OpenAI API 키가 필요해요" });
   if (!prompt) return res.status(400).json({ error: "분석할 내용이 필요해요" });
 
+  try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다. 절대 인사말, 서론, 마무리 말 없이 바로 분석 내용만 출력하세요." },
+          { role: "system", content: "당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다. 절대 인사말, 서론, 마무리 말 없이 바로 분석 내용만 출력하세요. 한국어로 답변하세요." },
           { role: "user", content: prompt }
         ],
         max_tokens: 4000,
