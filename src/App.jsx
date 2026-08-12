@@ -2284,11 +2284,25 @@ const AnalysisTab = ({ openAiKey, onOpenSettings }) => {
         ``,
         `📍 클립 3, 4, 5도 동일하게 작성`,
       ].join("\n");
-      const res = await fetch("/api/openai", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ key:openAiKey, prompt }) });
+      // Vercel 10초 제한 우회 - 브라우저에서 OpenAI 직접 호출
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${openAiKey}` },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            { role: "system", content: "당신은 대한민국 유튜브 쇼츠 전문 콘텐츠 전략가입니다. 절대 인사말, 서론, 마무리 말 없이 바로 분석 내용만 출력하세요. 한국어로 답변하세요." },
+            { role: "user", content: prompt }
+          ],
+          max_tokens: 4000, temperature: 0.7
+        })
+      });
       const data = await res.json();
-      if (!res.ok) { setError(data.error||"오류 발생"); setLoading(false); return; }
-      setResult(data.result);
-      const newHistory = [{ title:title.trim(), result:data.result, date:new Date().toLocaleDateString("ko") }, ...history].slice(0,10);
+      if (data.error) { setError(data.error.message); setLoading(false); return; }
+      const result = data.choices?.[0]?.message?.content || "";
+      if (!result) { setError("응답이 비어있어요. 다시 시도해주세요."); setLoading(false); return; }
+      setResult(result);
+      const newHistory = [{ title:title.trim(), result, date:new Date().toLocaleDateString("ko") }, ...history].slice(0,10);
       setHistory(newHistory);
       localStorage.setItem("analysis_history", JSON.stringify(newHistory));
     } catch(e) { setError("오류: "+e.message); }
