@@ -692,22 +692,7 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, openAiKey, onS
             </div>
           </div>
 
-          {/* 비밀번호 변경 */}
-          <div className="bg-gray-50 rounded-2xl p-4 mb-3">
-            <label className="text-xs font-black text-gray-600 block mb-2">🔑 비밀번호 변경</label>
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <input type={showPw?"text":"password"} value={newPw} onChange={e=>setNewPw(e.target.value)}
-                  placeholder="새 비밀번호 입력"
-                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 pr-12 outline-none"/>
-                <button onClick={()=>setShowPw(s=>!s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{showPw?"숨김":"표시"}</button>
-              </div>
-              <button onClick={()=>{
-                if(!newPw.trim()||newPw.length<4){alert("4자 이상 입력해주세요");return;}
-                onChangePassword(newPw.trim());setNewPw("");alert("✅ 비밀번호 변경됐어요!");
-              }} className="px-3 py-2.5 rounded-xl text-xs font-black text-gray-900 flex-shrink-0" style={{background:"#FF8C00"}}>변경</button>
-            </div>
-          </div>
+
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-gray-500">취소</button>
             <button onClick={()=>{onSave(key);onSaveGemini(gKey);onSaveOpenAi(oKey);onClose();}} className="flex-1 py-3 rounded-2xl text-sm font-black text-gray-900" style={{background:"#FF8C00"}}>저장</button>
