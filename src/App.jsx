@@ -1185,6 +1185,7 @@ const GukbapTab = () => {
   const [saving, setSaving]       = useState(false);
   const [filterGenre, setFilterGenre] = useState([]); // 빈 배열 = 전체
   const [filterSafety, setFilterSafety] = useState([]); // 빈 배열 = 전체
+  const [search, setSearch] = useState("");
   const [selected, setSelected]   = useState(null);
   const [form, setForm] = useState({ title:"", genre:"스릴러", producer:"", distributor:"", safety:"안전", memo:"", thumbnail:"" });
 
@@ -1275,7 +1276,8 @@ const GukbapTab = () => {
 
   const filtered = list.filter(i =>
     (filterGenre.length===0||filterGenre.includes(i.genre)) &&
-    (filterSafety.length===0||filterSafety.includes(i.safety))
+    (filterSafety.length===0||filterSafety.includes(i.safety)) &&
+    (!search.trim()||i.title?.includes(search.trim())||i.producer?.includes(search.trim()))
   );
   const genres = [...new Set(list.map(i=>i.genre))].filter(Boolean);
   const SAFETY_COLOR = {"안전":"#22c55e","주의":"#f59e0b","위험":"#ef4444"};
@@ -1305,9 +1307,17 @@ const GukbapTab = () => {
         </div>
       </div>
 
-      {/* 필터: 장르별 / 위험도 - 접힘형 다중선택 */}
+      {/* 검색 + 필터: 장르별 / 위험도 - 접힘형 다중선택 */}
       {list.length>0&&(
-        <div className="flex gap-2 mb-6 flex-wrap">
+        <div className="flex gap-2 mb-6 flex-wrap items-center">
+          <div className="relative" style={{minWidth:"200px"}}>
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" placeholder="제목/제작사 검색..." value={search} onChange={e=>setSearch(e.target.value)}
+              className="w-full pl-8 pr-7 py-1.5 text-xs bg-gray-100 rounded-xl border-0 outline-none focus:bg-gray-200 transition-colors placeholder-gray-400"/>
+            {search&&(
+              <button onClick={()=>setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+            )}
+          </div>
           <MultiChipFilter
             label="장르별"
             icon="🎬"
@@ -1334,8 +1344,17 @@ const GukbapTab = () => {
       ) : filtered.length===0 ? (
         <div className="flex flex-col items-center py-24 text-gray-300">
           <span className="text-5xl mb-3">🍚</span>
-          <p className="font-bold text-gray-400">아직 등록된 작품이 없어요</p>
-          {isAdmin&&<p className="text-sm text-gray-300 mt-1">+ 작품 추가 버튼으로 등록해보세요</p>}
+          {list.length>0 ? (
+            <>
+              <p className="font-bold text-gray-400">검색/필터 조건에 맞는 작품이 없어요</p>
+              <p className="text-sm text-gray-300 mt-1">검색어나 태그를 바꿔보세요</p>
+            </>
+          ) : (
+            <>
+              <p className="font-bold text-gray-400">아직 등록된 작품이 없어요</p>
+              {isAdmin&&<p className="text-sm text-gray-300 mt-1">+ 작품 추가 버튼으로 등록해보세요</p>}
+            </>
+          )}
         </div>
       ) : (
         <div className="grid gap-5" style={{gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))"}}>
