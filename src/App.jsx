@@ -1297,8 +1297,7 @@ const GukbapTab = () => {
         </div>
         <div className="flex gap-2 items-center">
           {syncing&&<span className="text-xs text-gray-400">동기화 중...</span>}
-          <button onClick={syncFromGitHub} disabled={syncing} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-400 bg-gray-100 hover:bg-gray-200 disabled:opacity-40">🔄</button>
-          {isAdmin ? (
+          {isAdmin && (
             <>
               <button onClick={()=>{setEditItem(null);setForm({title:"",genre:"스릴러",producer:"",distributor:"",platform:"",safety:"안전",memo:"",thumbnail:""});setShowForm(true);}}
                 className="text-xs font-black px-4 py-1.5 rounded-xl text-white" style={{background:"#FF8C00"}}>
@@ -1306,13 +1305,11 @@ const GukbapTab = () => {
               </button>
               <button onClick={()=>setIsAdmin(false)} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-400 bg-gray-100">로그아웃</button>
             </>
-          ) : (
-            <button onClick={()=>setShowLogin(true)} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-400 bg-gray-100">관리자</button>
           )}
         </div>
       </div>
 
-      {/* 필터: 장르별 / 위험도 - 접힘형 다중선택 + 작은 검색창 */}
+      {/* 필터: 장르별 / 위험도 - 접힘형 다중선택 + 검색 + 새로고침 */}
       {list.length>0&&(
         <div className="flex gap-2 mb-6 flex-wrap items-center">
           <MultiChipFilter
@@ -1337,6 +1334,7 @@ const GukbapTab = () => {
               <button onClick={()=>setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
             )}
           </div>
+          <button onClick={syncFromGitHub} disabled={syncing} title="새로고침" className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-400 bg-gray-100 hover:bg-gray-200 disabled:opacity-40">🔄</button>
         </div>
       )}
 
