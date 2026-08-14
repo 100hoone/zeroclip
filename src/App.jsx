@@ -1131,6 +1131,43 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
 const SAFETY_COLORS = { "안전": "#22c55e", "주의": "#f59e0b", "위험": "#ef4444" };
 const GENRES = ["스릴러","코미디","로맨스","드라마","예능","역사","액션","공포","SF","다큐","기타"];
 
+// ─────────────────────────────────────────────
+// 다중선택 태그 필터 (접힘/펼침, 기본값 전체)
+// ─────────────────────────────────────────────
+const MultiChipFilter = ({ label, icon, options, selected, setSelected }) => {
+  const { open, setOpen, ref } = useDropdown();
+  const allSelected = selected.length === 0;
+  const toggle = (val) => setSelected(prev => prev.includes(val) ? prev.filter(v=>v!==val) : [...prev, val]);
+  return (
+    <div className="relative" ref={ref}>
+      <button onClick={()=>setOpen(o=>!o)}
+        className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition-all ${!allSelected?"border-gray-900 bg-gray-900 text-white":"border-gray-200 bg-white text-gray-500 hover:bg-gray-50"}`}>
+        <span>{icon}</span>
+        <span>{label}{!allSelected && ` · ${selected.length}`}</span>
+        <svg className={`w-3 h-3 transition-transform ${open?"rotate-180":""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      {open&&(
+        <div className="absolute z-20 top-full left-0 mt-2 p-2.5 bg-white rounded-2xl shadow-xl border border-gray-100 flex flex-wrap gap-1.5" style={{minWidth:"240px", maxWidth:"300px"}}>
+          <button onClick={()=>setSelected([])}
+            className={`text-xs px-2.5 py-1 rounded-xl font-bold transition-all ${allSelected?"bg-gray-900 text-white":"bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>
+            전체
+          </button>
+          {options.map(opt=>{
+            const active = selected.includes(opt.value);
+            return (
+              <button key={opt.value} onClick={()=>toggle(opt.value)}
+                className="text-xs px-2.5 py-1 rounded-xl font-bold transition-all"
+                style={active?{background:opt.color||"#111827",color:"white"}:{background:"#f3f4f6",color:"#6b7280"}}>
+                {active&&"✓ "}{opt.label}{opt.count!==undefined?` ${opt.count}`:""}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const GukbapTab = () => {
   const REPO = "100hoone/zeroclip";
   const FILE = "gukbap.json";
@@ -1146,7 +1183,8 @@ const GukbapTab = () => {
   const [showForm, setShowForm]   = useState(false);
   const [editItem, setEditItem]   = useState(null);
   const [saving, setSaving]       = useState(false);
-  const [filterGenre, setFilterGenre] = useState("전체");
+  const [filterGenre, setFilterGenre] = useState([]); // 빈 배열 = 전체
+  const [filterSafety, setFilterSafety] = useState([]); // 빈 배열 = 전체
   const [selected, setSelected]   = useState(null);
   const [form, setForm] = useState({ title:"", genre:"스릴러", producer:"", distributor:"", safety:"안전", memo:"", thumbnail:"" });
 
@@ -1235,7 +1273,10 @@ const GukbapTab = () => {
     setShowForm(true);
   };
 
-  const filtered = filterGenre==="전체" ? list : list.filter(i=>i.genre===filterGenre);
+  const filtered = list.filter(i =>
+    (filterGenre.length===0||filterGenre.includes(i.genre)) &&
+    (filterSafety.length===0||filterSafety.includes(i.safety))
+  );
   const genres = [...new Set(list.map(i=>i.genre))].filter(Boolean);
   const SAFETY_COLOR = {"안전":"#22c55e","주의":"#f59e0b","위험":"#ef4444"};
 
@@ -1264,16 +1305,23 @@ const GukbapTab = () => {
         </div>
       </div>
 
-      {/* 장르 탭 */}
-      {genres.length>0&&(
+      {/* 필터: 장르별 / 위험도 - 접힘형 다중선택 */}
+      {list.length>0&&(
         <div className="flex gap-2 mb-6 flex-wrap">
-          {["전체",...genres].map(g=>(
-            <button key={g} onClick={()=>setFilterGenre(g)}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
-              style={filterGenre===g?{background:"#FF8C00",color:"white"}:{background:"#f3f4f6",color:"#6b7280"}}>
-              {g} {g==="전체"?list.length:list.filter(i=>i.genre===g).length}
-            </button>
-          ))}
+          <MultiChipFilter
+            label="장르별"
+            icon="🎬"
+            options={genres.map(g=>({ value:g, label:g, count:list.filter(i=>i.genre===g).length }))}
+            selected={filterGenre}
+            setSelected={setFilterGenre}
+          />
+          <MultiChipFilter
+            label="위험도"
+            icon="🚦"
+            options={["안전","주의","위험"].map(s=>({ value:s, label:s, color:SAFETY_COLOR[s], count:list.filter(i=>i.safety===s).length }))}
+            selected={filterSafety}
+            setSelected={setFilterSafety}
+          />
         </div>
       )}
 
