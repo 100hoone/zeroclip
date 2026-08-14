@@ -1274,11 +1274,16 @@ const GukbapTab = () => {
     setShowForm(true);
   };
 
+  const SAFETY_ORDER = {"안전":0,"주의":1,"위험":2};
   const filtered = list.filter(i =>
     (filterGenre.length===0||filterGenre.includes(i.genre)) &&
     (filterSafety.length===0||filterSafety.includes(i.safety)) &&
     (!search.trim()||i.title?.includes(search.trim())||i.producer?.includes(search.trim()))
-  );
+  ).sort((a,b)=>{
+    const sDiff = (SAFETY_ORDER[a.safety]??99) - (SAFETY_ORDER[b.safety]??99);
+    if (sDiff!==0) return sDiff;
+    return (a.title||"").localeCompare(b.title||"","ko");
+  });
   const genres = [...new Set(list.map(i=>i.genre))].filter(Boolean);
   const SAFETY_COLOR = {"안전":"#22c55e","주의":"#f59e0b","위험":"#ef4444"};
 
