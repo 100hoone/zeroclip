@@ -1164,19 +1164,25 @@ const GukbapTab = () => {
   // GitHub에서 최신 데이터 가져오기 (백그라운드 동기화)
   const syncFromGitHub = async () => {
     setSyncing(true);
+    const tryRaw = async () => {
+      const r = await fetch(`https://raw.githubusercontent.com/${REPO}/main/${FILE}?t=${Date.now()}`);
+      const d = await r.json();
+      if (Array.isArray(d) && d.length > 0) { saveLocal(d); return true; }
+      return false;
+    };
     try {
       const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE}`, {
-        headers: { Accept: "application/vnd.github.v3+json", "Cache-Control": "no-cache", "Pragma": "no-cache" },
-        cache: "no-store"
+        headers: { Accept: "application/vnd.github.v3+json" }, cache: "no-store"
       });
       const data = await res.json();
       if (data.content) {
         const decoded = JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g,"")))));
-        if (Array.isArray(decoded)) {
-          saveLocal(decoded);
-        }
+        if (Array.isArray(decoded) && decoded.length > 0) { saveLocal(decoded); setSyncing(false); return; }
       }
-    } catch(e) { console.error("GitHub sync failed:", e); }
+      await tryRaw();
+    } catch(e) {
+      try { await tryRaw(); } catch(e2) { console.error("Sync failed:", e2); }
+    }
     setSyncing(false);
   };
 
