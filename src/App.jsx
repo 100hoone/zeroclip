@@ -1307,17 +1307,9 @@ const GukbapTab = () => {
         </div>
       </div>
 
-      {/* 검색 + 필터: 장르별 / 위험도 - 접힘형 다중선택 */}
+      {/* 필터: 장르별 / 위험도 - 접힘형 다중선택 + 작은 검색창 */}
       {list.length>0&&(
         <div className="flex gap-2 mb-6 flex-wrap items-center">
-          <div className="relative" style={{minWidth:"200px"}}>
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input type="text" placeholder="제목/제작사 검색..." value={search} onChange={e=>setSearch(e.target.value)}
-              className="w-full pl-8 pr-7 py-1.5 text-xs bg-gray-100 rounded-xl border-0 outline-none focus:bg-gray-200 transition-colors placeholder-gray-400"/>
-            {search&&(
-              <button onClick={()=>setSearch("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
-            )}
-          </div>
           <MultiChipFilter
             label="장르별"
             icon="🎬"
@@ -1332,6 +1324,14 @@ const GukbapTab = () => {
             selected={filterSafety}
             setSelected={setFilterSafety}
           />
+          <div className="relative" style={{width:"130px"}}>
+            <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input type="text" placeholder="검색" value={search} onChange={e=>setSearch(e.target.value)}
+              className="w-full pl-7 pr-6 py-1.5 text-xs bg-gray-100 rounded-xl border-0 outline-none focus:bg-gray-200 transition-colors placeholder-gray-400"/>
+            {search&&(
+              <button onClick={()=>setSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">✕</button>
+            )}
+          </div>
         </div>
       )}
 
