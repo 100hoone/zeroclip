@@ -877,7 +877,7 @@ const CAT_KEYWORDS = {
 
 // 영상 추가 모달
 // ─────────────────────────────────────────────
-const VideoAddModal = ({ onAdd, onClose, apiKey }) => {
+const VideoAddModal = ({ onAdd, onClose, apiKey, cards }) => {
   const [url, setUrl]         = useState("");
   const [title, setTitle]     = useState("");
   const [channel, setChannel] = useState("");
@@ -920,9 +920,19 @@ const VideoAddModal = ({ onAdd, onClose, apiKey }) => {
 
   const handleAdd = () => {
     if (!url.trim()||!title.trim()) { setError("URL과 제목은 필수예요"); return; }
+    // 같은 채널의 기존 카드 평균 조회수로 배수 계산
+    const viewsNum = toViewsNum(views);
+    let multiplier = "×?";
+    if (viewsNum&&channel) {
+      const sameChannelViews = (cards||[]).filter(c=>c.channel===channel).map(c=>toViewsNum(c.views)).filter(Boolean);
+      if (sameChannelViews.length) {
+        const avg = sameChannelViews.reduce((a,b)=>a+b,0)/sameChannelViews.length;
+        if (avg>0) multiplier = `×${(viewsNum/avg).toFixed(1)}`;
+      }
+    }
     onAdd({
       id: Date.now()+Math.random(),
-      title, channel, views: views||"?", multiplier:"×?",
+      title, channel, views: views||"?", multiplier,
       mainCat: selectedCat, subCat:"", daysAgo:"직접추가",
       url, thumbnail, addedAt:new Date().toISOString(), bookmarked:false, memo:"", script:"", tags:[], myViews:""
     });
@@ -2956,6 +2966,16 @@ export default function ZeroClip() {
         const vidData  = await vidRes.json();
         const existing = JSON.parse(localStorage.getItem("zc_cards")||"[]");
         const existingUrls = new Set(existing.map(c=>c.url?.split("v=")?.[1]||c.url?.split("shorts/")?.[1]));
+        // 채널별 평균 조회수 (배수 계산용) - 기존 카드 기준
+        const chAvgViews = {};
+        existing.forEach(c=>{
+          const v = toViewsNum(c.views);
+          if (!v) return;
+          if (!chAvgViews[c.channel]) chAvgViews[c.channel] = [];
+          chAvgViews[c.channel].push(v);
+        });
+        const chAvg = {};
+        Object.entries(chAvgViews).forEach(([ch,list])=>{ chAvg[ch] = list.reduce((a,b)=>a+b,0)/list.length; });
         const newCards = (vidData.items||[]).filter(v=>!existingUrls.has(v.id)).map(v=>{
           const views    = parseInt(v.statistics?.viewCount||0);
           const viewsStr = views>=10000000?`${(views/10000000).toFixed(1)}천만`:views>=1000000?`${(views/1000000).toFixed(0)}백만`:views>=10000?`${Math.round(views/10000)}만`:`${views}`;
@@ -2967,13 +2987,36 @@ export default function ZeroClip() {
             .reduce((acc,c)=>{ acc[c.mainCat]=(acc[c.mainCat]||0)+1; return acc; },{});
           const topCat = Object.entries(existingCat).sort((a,b)=>b[1]-a[1])[0]?.[0];
           const finalCat = (ch.category&&ch.category!=="전체") ? ch.category : (topCat||"전체");
-          return { id:Date.now()+Math.random(), title:v.snippet.title, channel:chName, views:viewsStr, multiplier:"×?", mainCat:finalCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, channelUrl:ch.url||"", thumbnail:v.snippet.thumbnails?.medium?.url||"", publishedAt:v.snippet?.publishedAt||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"" };
+          const avg = chAvg[chName];
+          const multiplier = (views&&avg) ? `×${(views/avg).toFixed(1)}` : "×?";
+          return { id:Date.now()+Math.random(), title:v.snippet.title, channel:chName, views:viewsStr, multiplier, mainCat:finalCat, subCat:"", daysAgo, url:`https://youtube.com/watch?v=${v.id}`, channelUrl:ch.url||"", thumbnail:v.snippet.thumbnails?.medium?.url||"", publishedAt:v.snippet?.publishedAt||"", bookmarked:false, memo:"", script:"", tags:[], myViews:"" };
         });
         if (newCards.length>0) {
           newCount += newCards.length;
           setCards(p=>{ const n=[...newCards,...p]; localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
         }
       }
+      // 동기화 후 배수 "×?" 남아있는 기존 카드 자동 복구
+      setCards(p=>{
+        const chAvgViews = {};
+        p.forEach(c=>{
+          const v = toViewsNum(c.views);
+          if (!v) return;
+          if (!chAvgViews[c.channel]) chAvgViews[c.channel] = [];
+          chAvgViews[c.channel].push(v);
+        });
+        const chAvg = {};
+        Object.entries(chAvgViews).forEach(([ch,list])=>{ chAvg[ch] = list.reduce((a,b)=>a+b,0)/list.length; });
+        const healed = p.map(c=>{
+          if (c.multiplier&&c.multiplier!=="×?") return c;
+          const views = toViewsNum(c.views);
+          const avg   = chAvg[c.channel];
+          if (!views||!avg) return c;
+          return {...c, multiplier:`×${(views/avg).toFixed(1)}`};
+        });
+        localStorage.setItem("zc_cards", JSON.stringify(healed));
+        return healed;
+      });
       const now = new Date().toISOString();
       setLastSynced(now); localStorage.setItem("zc_last_synced", now);
       if (newCount > 0) alert(`✅ ${newCount}개 새 영상을 추가했어요!`);
@@ -3247,7 +3290,7 @@ export default function ZeroClip() {
       {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)} geminiKey={geminiKey}/>}
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
       {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} openAiKey={openAiKey} onSaveOpenAi={saveOpenAiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub} onFixDates={fixCardDates} onFixThumbnails={fixThumbnails} onRecalcMultipliers={recalcMultipliers} onChangePassword={pw=>{localStorage.setItem("zc_password",pw);}}/>}
-      {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)} apiKey={apiKey}/>}
+      {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)} apiKey={apiKey} cards={cards}/>}
       {showCategoryFetch&&<CategoryAutoFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowCategoryFetch(false)}/>}
       {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowChannelFetch(false)}
         onRegisterChannel={ch=>{ if(!refChannels.find(r=>r.url===ch.url)) saveRefChannels([...refChannels,ch]); }}/>}
