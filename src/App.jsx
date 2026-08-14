@@ -1119,7 +1119,7 @@ const CategoryAutoFetchModal = ({ apiKey, onAdd, onClose }) => {
 // 국밥리스트 탭
 // ─────────────────────────────────────────────
 const SAFETY_COLORS = { "안전": "#22c55e", "주의": "#f59e0b", "위험": "#ef4444" };
-const GENRES = ["범죄스릴러","코미디","로맨스","드라마","예능","역사","액션","공포","SF","다큐","기타"];
+const GENRES = ["스릴러","코미디","로맨스","드라마","예능","역사","액션","공포","SF","다큐","기타"];
 
 const GukbapTab = () => {
   const REPO = "100hoone/zeroclip";
@@ -1138,7 +1138,7 @@ const GukbapTab = () => {
   const [saving, setSaving]       = useState(false);
   const [filterGenre, setFilterGenre] = useState("전체");
   const [selected, setSelected]   = useState(null);
-  const [form, setForm] = useState({ title:"", genre:"범죄스릴러", producer:"", distributor:"", safety:"안전", memo:"", thumbnail:"" });
+  const [form, setForm] = useState({ title:"", genre:"스릴러", producer:"", distributor:"", safety:"안전", memo:"", thumbnail:"" });
 
   // localStorage에 저장
   const saveLocal = (newList) => {
@@ -1210,7 +1210,7 @@ const GukbapTab = () => {
       // 1. 즉시 localStorage 저장 (화면 바로 반영)
       saveLocal(newList);
       setShowForm(false); setEditItem(null);
-      setForm({title:"",genre:"범죄스릴러",producer:"",distributor:"",platform:"",safety:"안전",memo:"",thumbnail:""});
+      setForm({title:"",genre:"스릴러",producer:"",distributor:"",platform:"",safety:"안전",memo:"",thumbnail:""});
 
       // 2. 백그라운드로 GitHub 저장
       await saveToGitHub(newList);
@@ -1242,7 +1242,7 @@ const GukbapTab = () => {
           <button onClick={syncFromGitHub} disabled={syncing} className="text-xs font-bold px-3 py-1.5 rounded-xl text-gray-400 bg-gray-100 hover:bg-gray-200 disabled:opacity-40">🔄</button>
           {isAdmin ? (
             <>
-              <button onClick={()=>{setEditItem(null);setForm({title:"",genre:"범죄스릴러",producer:"",distributor:"",platform:"",safety:"안전",memo:"",thumbnail:""});setShowForm(true);}}
+              <button onClick={()=>{setEditItem(null);setForm({title:"",genre:"스릴러",producer:"",distributor:"",platform:"",safety:"안전",memo:"",thumbnail:""});setShowForm(true);}}
                 className="text-xs font-black px-4 py-1.5 rounded-xl text-white" style={{background:"#FF8C00"}}>
                 + 작품 추가
               </button>
