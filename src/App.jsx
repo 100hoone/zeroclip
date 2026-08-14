@@ -1153,7 +1153,7 @@ const GukbapTab = () => {
   const [saving, setSaving]       = useState(false);
   const [filterGenre, setFilterGenre] = useState("전체");
   const [selected, setSelected]   = useState(null);
-  const [form, setForm] = useState({ title:"", genre:"범죄스릴러", producer:"", distributor:"", platform:"", safety:"안전", memo:"", thumbnail:"" });
+  const [form, setForm] = useState({ title:"", genre:"범죄스릴러", producer:"", distributor:"", safety:"안전", memo:"", thumbnail:"" });
 
   // localStorage에 저장
   const saveLocal = (newList) => {
@@ -1230,7 +1230,7 @@ const GukbapTab = () => {
 
   const openEdit = (item) => {
     setEditItem(item);
-    setForm({title:item.title,genre:item.genre,producer:item.producer||"",distributor:item.distributor||"",platform:item.platform||"",safety:item.safety,memo:item.memo||"",thumbnail:item.thumbnail||""});
+    setForm({title:item.title,genre:item.genre,producer:item.producer||"",distributor:item.distributor||"",safety:item.safety,memo:item.memo||"",thumbnail:item.thumbnail||""});
     setShowForm(true);
   };
 
@@ -1333,7 +1333,6 @@ const GukbapTab = () => {
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   <span className="text-xs font-black px-2 py-0.5 rounded-full text-white" style={{background:SAFETY_COLOR[selected.safety]||"#22c55e"}}>한줄평: {selected.safety}</span>
                   <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-orange-50 text-orange-500">{selected.genre}</span>
-                  {selected.platform&&<span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{selected.platform}</span>}
                 </div>
                 {selected.producer&&<p className="text-xs text-gray-500">제작사: {selected.producer}</p>}
                 {selected.distributor&&<p className="text-xs text-gray-500">배급사: {selected.distributor}</p>}
@@ -1375,7 +1374,6 @@ const GukbapTab = () => {
                 {label:"작품명 *", key:"title", placeholder:"예: 더 글로리"},
                 {label:"제작사", key:"producer", placeholder:"예: 화앤담픽처스"},
                 {label:"배급사", key:"distributor", placeholder:"예: 넷플릭스"},
-                {label:"플랫폼", key:"platform", placeholder:"예: Netflix, 웨이브 등"},
                 {label:"썸네일 URL", key:"thumbnail", placeholder:"https://..."},
               ].map(f=>(
                 <div key={f.key}>
