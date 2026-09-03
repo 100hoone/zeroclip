@@ -1,5 +1,16 @@
 [
   {
+    "id": 1788427230205,
+    "title": "프리즌",
+    "genre": "액션",
+    "producer": "쿠로홀딩스",
+    "distributor": "쇼박스",
+    "safety": "주의",
+    "thumbnail": "https://www.themoviedb.org/t/p/w1280/8ieBJvHi6Keg5t1Rwlw650klefS.jpg",
+    "memo": "",
+    "addedAt": "2026-09-03T09:20:30.205Z"
+  },
+  {
     "id": 1788427131102,
     "title": "원더풀스",
     "genre": "판타지",
@@ -302,7 +313,7 @@
     "genre": "공포",
     "producer": "글앤그림미디어, 카카오엔터테인먼트",
     "distributor": "넷플릭스",
-    "safety": "안전",
+    "safety": "주의",
     "thumbnail": "https://www.themoviedb.org/t/p/w1280/wrTkOQ0mLAgsNnlCS1Buo18ZeG5.jpg",
     "memo": "",
     "addedAt": "2026-08-14T06:48:49.060Z"
