@@ -355,7 +355,7 @@ const ScriptModal = ({ item, onClose, onSave, geminiKey }) => {
   const copy = ()=>{navigator.clipboard.writeText(text);setCopied(true);setTimeout(()=>setCopied(false),1500);};
 
   const runGemini = async (selectedMode) => {
-    if (!openAiKey||!openAiKey.startsWith("sk-")) { setError("⚙️ 설정에서 ChatGPT API 키를 먼저 등록해주세요"); return; }
+    if (!isValidGeminiKey(geminiKey)) { setError("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return; }
     if (!item.url) { setError("영상 URL이 없어요"); return; }
     setLoading(true); setError(""); setMode(selectedMode);
     try {
@@ -526,13 +526,11 @@ const MyViewsModal = ({ item, onClose, onSave }) => {
 // ─────────────────────────────────────────────
 // 설정 모달
 // ─────────────────────────────────────────────
-const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, openAiKey, onSaveOpenAi, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory, onAddSub, onRemoveSub, onFixDates, onFixThumbnails, onRecalcMultipliers, onChangePassword }) => {
+const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTags, onAddTag, onRemoveTag, taxonomy, onAddCategory, onRemoveCategory, onAddSub, onRemoveSub, onFixDates, onFixThumbnails, onRecalcMultipliers, onChangePassword }) => {
   const [key, setKey]         = useState(apiKey);
   const [gKey, setGKey]       = useState(geminiKey);
-  const [oKey, setOKey]       = useState(openAiKey);
   const [showYt, setShowYt]   = useState(false);
   const [showGm, setShowGm]   = useState(false);
-  const [showOai, setShowOai] = useState(false);
   const [newTag, setNewTag]   = useState("");
   const [newCatName, setNewCatName]   = useState("");
   const [newCatEmoji, setNewCatEmoji] = useState("🎬");
@@ -564,22 +562,6 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, openAiKey, onS
               <button onClick={()=>setShowYt(s=>!s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{showYt?"숨김":"표시"}</button>
             </div>
             {key&&key.startsWith("AIza")&&<p className="text-xs text-green-600 font-bold mt-1.5">✓ 유효한 키 형식이에요</p>}
-          </div>
-
-          {/* OpenAI API 키 */}
-          <div className="bg-gray-50 rounded-2xl p-4 mb-3">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-base">🤖</span>
-              <label className="text-xs font-black text-gray-600">ChatGPT (OpenAI) API 키</label>
-              <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer"
-                className="ml-auto text-xs text-blue-500 font-bold hover:underline">발급받기 →</a>
-            </div>
-            <div className="relative">
-              <input type={showOai?"text":"password"} value={oKey} onChange={e=>setOKey(e.target.value)} placeholder="sk-..."
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 pr-12 outline-none font-mono bg-white"/>
-              <button onClick={()=>setShowOai(s=>!s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{showOai?"숨김":"표시"}</button>
-            </div>
-            {oKey&&oKey.startsWith("sk-")&&<p className="text-xs text-green-600 font-bold mt-1.5">✓ 유효한 키 형식이에요</p>}
           </div>
 
           {/* Gemini API 키 */}
@@ -698,7 +680,7 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, openAiKey, onS
 
           <div className="flex gap-2">
             <button onClick={onClose} className="flex-1 py-3 rounded-2xl border border-gray-200 text-sm font-bold text-gray-500">취소</button>
-            <button onClick={()=>{onSave(key);onSaveGemini(gKey);onSaveOpenAi(oKey);onClose();}} className="flex-1 py-3 rounded-2xl text-sm font-black text-gray-900" style={{background:"#FF8C00"}}>저장</button>
+            <button onClick={()=>{onSave(key);onSaveGemini(gKey);onClose();}} className="flex-1 py-3 rounded-2xl text-sm font-black text-gray-900" style={{background:"#FF8C00"}}>저장</button>
           </div>
         </div>
       </div>
@@ -2989,7 +2971,6 @@ export default function ZeroClip() {
   const [allTags, setAllTags]       = useState(DEFAULT_TAGS);
   const [apiKey, setApiKey]         = useState(()=>localStorage.getItem("yt_api_key")||"");
   const [geminiKey, setGeminiKey]   = useState(()=>localStorage.getItem("gemini_api_key")||"");
-  const [openAiKey, setOpenAiKey]   = useState(()=>localStorage.getItem("openai_api_key")||"");
   const [autoSyncing, setAutoSyncing] = useState(false);
   const [lastSynced, setLastSynced]   = useState(()=>localStorage.getItem("zc_last_synced")||"");
 
@@ -3179,7 +3160,6 @@ export default function ZeroClip() {
   };
 
   const saveGeminiKey= key => { setGeminiKey(key); localStorage.setItem("gemini_api_key", key); };
-  const saveOpenAiKey= key => { setOpenAiKey(key); localStorage.setItem("openai_api_key", key); };
   const addTag    = tag => { if (!allTags.includes(tag)) setAllTags(p=>[...p,tag]); };
   const removeTag = tag => { setAllTags(p=>p.filter(t=>t!==tag)); setCards(p=>p.map(c=>({...c,tags:c.tags?.filter(t=>t!==tag)||[]}))); };
 
@@ -3362,7 +3342,7 @@ export default function ZeroClip() {
       {catEditTarget    &&<CatEditModal      item={catEditTarget} onClose={()=>setCatEditTarget(null)} onSave={saveCat}/>}
       {aiTargets        &&<AiAnalysisModal   items={aiTargets}   onClose={()=>setAiTargets(null)} geminiKey={geminiKey}/>}
       {showExport       &&<ExportModal       items={cards.filter(c=>selectedIds.includes(c.id))} onClose={()=>setShowExport(false)}/>}
-      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} openAiKey={openAiKey} onSaveOpenAi={saveOpenAiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub} onFixDates={fixCardDates} onFixThumbnails={fixThumbnails} onRecalcMultipliers={recalcMultipliers} onChangePassword={pw=>{localStorage.setItem("zc_password",pw);}}/>}
+      {showSettings     &&<SettingsModal     apiKey={apiKey} onSave={saveApiKey} geminiKey={geminiKey} onSaveGemini={saveGeminiKey} onClose={()=>setShowSettings(false)} allTags={allTags} onAddTag={addTag} onRemoveTag={removeTag} taxonomy={TAXONOMY} onAddCategory={addCategory} onRemoveCategory={removeCategory} onAddSub={addSub} onRemoveSub={removeSub} onFixDates={fixCardDates} onFixThumbnails={fixThumbnails} onRecalcMultipliers={recalcMultipliers} onChangePassword={pw=>{localStorage.setItem("zc_password",pw);}}/>}
       {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)} apiKey={apiKey} cards={cards}/>}
       {showCategoryFetch&&<CategoryAutoFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowCategoryFetch(false)}/>}
       {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowChannelFetch(false)}
