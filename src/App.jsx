@@ -93,6 +93,9 @@ const isInPeriod = (card, period, from, to) => {
   return true;
 };
 
+// Gemini API 키: 기존 AIzaSy 표준 키 + 신규 AQ. 인증 키(2026년 하반기부터 구글이 기본 발급) 둘 다 허용
+const isValidGeminiKey = k => !!k && (k.startsWith("AIza") || k.startsWith("AQ."));
+
 const toViewsNum = v => {
   if (!v) return 0;
   if (v.includes("천만")) return parseFloat(v)*10000000;
@@ -588,11 +591,11 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, openAiKey, onS
                 className="ml-auto text-xs text-blue-500 font-bold hover:underline">발급받기 →</a>
             </div>
             <div className="relative">
-              <input type={showGm?"text":"password"} value={gKey} onChange={e=>setGKey(e.target.value)} placeholder="AIzaSy..."
+              <input type={showGm?"text":"password"} value={gKey} onChange={e=>setGKey(e.target.value)} placeholder="AIzaSy... 또는 AQ...."
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 pr-12 outline-none font-mono bg-white"/>
               <button onClick={()=>setShowGm(s=>!s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{showGm?"숨김":"표시"}</button>
             </div>
-            {gKey&&gKey.startsWith("AIza")&&<p className="text-xs text-green-600 font-bold mt-1.5">✓ 유효한 키 형식이에요</p>}
+            {gKey&&isValidGeminiKey(gKey)&&<p className="text-xs text-green-600 font-bold mt-1.5">✓ 유효한 키 형식이에요</p>}
           </div>
 
           {/* 카테고리 관리 */}
@@ -1832,7 +1835,7 @@ const MyChannelTab = ({ refCards, apiKey, geminiKey }) => {
   };
 
   const runGeminiDiag = async (result) => {
-    if (!geminiKey||!geminiKey.startsWith("AIza")) { setGeminiDiag("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return; }
+    if (!isValidGeminiKey(geminiKey)) { setGeminiDiag("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return; }
     setDiagLoading(true); setGeminiDiag("");
     const myTop5Titles  = result.top5.map((v,i)=>`${i+1}. "${v.title}" (${fmtNum(v.views)}회)`).join("\n");
     const refTop5Titles = [...result.filteredRef].sort((a,b)=>parseFloat(b.multiplier?.replace("×","")||0)-parseFloat(a.multiplier?.replace("×","")||0)).slice(0,5)
@@ -2165,7 +2168,7 @@ const AiAnalysisModal = ({ items, onClose, geminiKey }) => {
 
   const analyze = async () => {
     if (mode==="custom"&&!customQ.trim()) return;
-    if (!geminiKey||!geminiKey.startsWith("AIza")) { setResult("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return; }
+    if (!isValidGeminiKey(geminiKey)) { setResult("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return; }
     setLoading(true); setResult("");
     try {
       const cards = items.map((item,i)=>{
@@ -2338,7 +2341,7 @@ const AnalysisTab = ({ cards, geminiKey, onOpenSettings }) => {
   };
 
   const analyze = async () => {
-    if (!geminiKey||!geminiKey.startsWith("AIza")) {
+    if (!isValidGeminiKey(geminiKey)) {
       setError("⚙️ 설정에서 Gemini API 키를 먼저 등록해주세요"); return;
     }
     const targets = customUrl.trim()
@@ -2433,7 +2436,7 @@ const AnalysisTab = ({ cards, geminiKey, onOpenSettings }) => {
         <p className="text-sm text-gray-400">Gemini가 영상을 직접 보고 클립·제목·대사를 뽑아드려요</p>
       </div>
 
-      {(!geminiKey||!geminiKey.startsWith("AIza"))&&(
+      {!isValidGeminiKey(geminiKey)&&(
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-4 flex items-center justify-between">
           <p className="text-sm font-black text-amber-700">⚙️ Gemini API 키 등록 필요</p>
           <button onClick={onOpenSettings} className="text-xs font-black px-3 py-1.5 rounded-xl text-white" style={{background:"#FF8C00"}}>설정 열기</button>

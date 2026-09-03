@@ -38,8 +38,8 @@ export default async function handler(req, res) {
   for (const model of MODELS) {
     try {
       const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key }, body }
       );
       const data = await geminiRes.json();
 
