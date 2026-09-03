@@ -1,10 +1,10 @@
 [
   {
     "id": 1786697481179,
-    "title": "타짜",
+    "title": "타짜2",
     "genre": "액션",
-    "producer": "싸이더스",
-    "distributor": "CJ엔터테인먼트",
+    "producer": "사이더스픽쳐스",
+    "distributor": "롯데엔터테인먼트",
     "safety": "주의",
     "thumbnail": "https://www.themoviedb.org/t/p/w1280/o1a5FULQTObsNbcgjapJtunpFzV.jpg",
     "memo": "",
@@ -18,17 +18,6 @@
     "distributor": "쇼박스",
     "safety": "주의",
     "thumbnail": "https://www.themoviedb.org/t/p/w1280/pCdx7X5JLaSJZLNVtpryGSdjvvB.jpg",
-    "memo": "",
-    "addedAt": "2026-08-14T08:51:21.192Z"
-  },
-  {
-    "id": 1786697481181,
-    "title": "베테랑",
-    "genre": "액션",
-    "producer": "외유내강",
-    "distributor": "CJ엔터테인먼트",
-    "safety": "주의",
-    "thumbnail": "https://www.themoviedb.org/t/p/w1280/8OJ4VtaddbDDwP1ydCitsYxgzCT.jpg",
     "memo": "",
     "addedAt": "2026-08-14T08:51:21.192Z"
   },
