@@ -1503,7 +1503,7 @@ const GukbapTab = () => {
   );
 };
 
-const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatChange, onFilterChannel }) => {
+const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatChange, onDeleteChannel, onFilterChannel }) => {
   const [selectedCh, setSelectedCh]     = useState(null);
   const [editingCh, setEditingCh]       = useState(null);
   const [bulkMainCat, setBulkMainCat]   = useState("전체");
@@ -1575,6 +1575,15 @@ const ChannelsTab = ({ cards, refChannels, saveRefChannels, apiKey, onBulkCatCha
           <button onClick={()=>setEditingCh(editingCh===selectedCh?null:selectedCh)}
             className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 flex-shrink-0">
             📂 카테고리 일괄 변경
+          </button>
+          <button onClick={()=>{
+              if (window.confirm(`"${selectedCh}" 채널의 카드 ${selectedCards.length}개를 전부 삭제할까요?\n이 작업은 되돌릴 수 없어요.`)) {
+                onDeleteChannel(selectedCh);
+                setSelectedCh(null);
+              }
+            }}
+            className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 flex-shrink-0">
+            🗑 채널 카드 전체 삭제
           </button>
         </div>
 
@@ -3323,6 +3332,10 @@ export default function ZeroClip() {
       ) : tab==="channels" ? (
         <ChannelsTab cards={cards} refChannels={refChannels} saveRefChannels={saveRefChannels} onUpdateCards={saveCat} apiKey={apiKey} onBulkCatChange={(chName,mainCat,subCat)=>{
           setCards(p=>{ const n=p.map(c=>c.channel===chName?{...c,mainCat,subCat}:c); localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
+        }} onDeleteChannel={chName=>{
+          setCards(p=>{ const n=p.filter(c=>c.channel!==chName); localStorage.setItem("zc_cards",JSON.stringify(n)); return n; });
+          const stillRef = refChannels.filter(r=>r.name===chName);
+          if (stillRef.length>0) saveRefChannels(refChannels.filter(r=>r.name!==chName));
         }} onFilterChannel={ch=>{ setTab("gallery"); setMainCat("전체"); }} />
       ) : (
         <div className="max-w-7xl mx-auto px-4 py-5">
