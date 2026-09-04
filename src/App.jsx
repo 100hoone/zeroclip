@@ -703,7 +703,7 @@ const SettingsModal = ({ apiKey, onSave, geminiKey, onSaveGemini, onClose, allTa
 // ─────────────────────────────────────────────
 // 채널 수집 모달
 // ─────────────────────────────────────────────
-const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel }) => {
+const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel, refChannels, onRemoveChannel }) => {
   const [channelUrl, setChannelUrl] = useState("");
   const [maxResults, setMaxResults] = useState(20);
   const [selectedCat, setSelectedCat] = useState("전체");
@@ -768,6 +768,21 @@ const ChannelFetchModal = ({ apiKey, onAdd, onClose, onRegisterChannel }) => {
         </div>
         {step==="input"&&(
           <div className="p-5 space-y-4">
+            {refChannels&&refChannels.length>0&&(
+              <div>
+                <label className="text-xs font-black text-gray-600 block mb-2">📡 등록된 레퍼런스 채널 ({refChannels.length}개)</label>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {refChannels.map(ch=>(
+                    <div key={ch.url} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                      <span className="text-sm font-bold text-gray-700 flex-1 truncate">{ch.name}</span>
+                      <span className="text-xs text-gray-400 flex-shrink-0">{ch.category}</span>
+                      <button onClick={()=>{ if(window.confirm(`"${ch.name}" 채널을 레퍼런스 목록에서 삭제할까요?\n(이미 가져온 영상 카드는 그대로 남아요)`)) onRemoveChannel(ch.url); }}
+                        className="w-5 h-5 flex items-center justify-center rounded-full bg-gray-200 text-gray-500 hover:bg-red-100 hover:text-red-500 text-xs flex-shrink-0">✕</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <label className="text-xs font-black text-gray-600 block mb-2">채널 URL</label>
               <input value={channelUrl} onChange={e=>setChannelUrl(e.target.value)} placeholder="https://www.youtube.com/@채널명"
@@ -3358,7 +3373,9 @@ export default function ZeroClip() {
       {showVideoAdd     &&<VideoAddModal onAdd={addCard} onClose={()=>setShowVideoAdd(false)} apiKey={apiKey} cards={cards}/>}
       {showCategoryFetch&&<CategoryAutoFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowCategoryFetch(false)}/>}
       {showChannelFetch &&<ChannelFetchModal apiKey={apiKey} onAdd={addCard} onClose={()=>setShowChannelFetch(false)}
-        onRegisterChannel={ch=>{ if(!refChannels.find(r=>r.url===ch.url)) saveRefChannels([...refChannels,ch]); }}/>}
+        refChannels={refChannels}
+        onRegisterChannel={ch=>{ if(!refChannels.find(r=>r.url===ch.url)) saveRefChannels([...refChannels,ch]); }}
+        onRemoveChannel={url=>saveRefChannels(refChannels.filter(r=>r.url!==url))}/>}
     </div>
   );
 }
