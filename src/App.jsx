@@ -96,6 +96,18 @@ const isInPeriod = (card, period, from, to) => {
 // Gemini API 키: 기존 AIzaSy 표준 키 + 신규 AQ. 인증 키(2026년 하반기부터 구글이 기본 발급) 둘 다 허용
 const isValidGeminiKey = k => !!k && (k.startsWith("AIza") || k.startsWith("AQ."));
 
+// /api/gemini 응답 파싱: 서버가 타임아웃(30초+ 걸리는 영상 처리 등)되면 JSON이 아닌
+// 에러 페이지가 내려오는데, 그걸 그냥 파싱하면 "Unexpected token..." 같은 원문 JS 에러가
+// 그대로 사용자에게 노출되어 버림. 여기서 미리 감지해서 이해할 수 있는 메시지로 바꿔줌.
+const parseGeminiResponse = async (res) => {
+  const raw = await res.text();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    throw new Error("영상이 길거나 서버가 지연되어 응답을 받지 못했어요. 잠시 후 다시 시도해주세요.");
+  }
+};
+
 const toViewsNum = v => {
   if (!v) return 0;
   if (v.includes("천만")) return parseFloat(v)*10000000;
@@ -374,7 +386,7 @@ const ScriptModal = ({ item, onClose, onSave, geminiKey }) => {
           prompt: prompts[selectedMode]
         })
       });
-      const data = await res.json();
+      const data = await parseGeminiResponse(res);
       if (!res.ok) { setError(data.error||"오류가 발생했어요"); setLoading(false); return; }
       setText(data.result);
     } catch(e) { setError("오류: " + e.message); }
@@ -1845,7 +1857,7 @@ ${refTop5Titles}
     try {
       const res = await fetch("/api/gemini", { method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({ key:geminiKey, prompt }) });
-      const data = await res.json();
+      const data = await parseGeminiResponse(res);
       setGeminiDiag(data.result || data.error || "응답 없음");
     } catch(e) { setGeminiDiag("오류: "+e.message); }
     setDiagLoading(false);
@@ -2170,9 +2182,9 @@ const AiAnalysisModal = ({ items, onClose, geminiKey }) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ key: geminiKey, prompt: prompts[mode] })
       });
-      const data = await res.json();
+      const data = await parseGeminiResponse(res);
       setResult(data.result || data.error || "응답을 받지 못했어요.");
-    } catch(e) { setResult("❌ 오류가 발생했어요. 다시 시도해주세요."); }
+    } catch(e) { setResult("❌ " + e.message); }
     setLoading(false);
   };
 
@@ -2371,7 +2383,7 @@ const AnalysisTab = ({ cards, geminiKey, onOpenSettings }) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ key: geminiKey, videoUrl, prompt })
         });
-        const data = await res.json();
+        const data = await parseGeminiResponse(res);
         if (data.error) { setError(data.error); setLoading(false); return; }
         allResults.push(`🎬 **${card.title||videoUrl}**\n\n${data.result}`);
       }
