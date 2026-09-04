@@ -1,11 +1,9 @@
 const MODELS = [
+  'gemini-3.7-flash',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
   'gemini-2.5-flash',
-  'gemini-2.5-flash-lite-preview-06-17',
-  'gemini-2.0-flash-lite',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-flash-8b',
-  'gemini-1.5-pro',
+  'gemini-2.5-pro',
 ];
 
 export default async function handler(req, res) {
@@ -43,9 +41,14 @@ export default async function handler(req, res) {
       );
       const data = await geminiRes.json();
 
-      if (data.error?.code === 404 || data.error?.status === 'NOT_FOUND') continue;
+      if (data.error?.code === 404 || data.error?.status === 'NOT_FOUND') { console.log(`${model} not found, trying next...`); continue; }
       if (data.error?.code === 503 || data.error?.status === 'UNAVAILABLE') { console.log(`${model} overloaded, trying next...`); continue; }
       if (data.error?.code === 429 || data.error?.status === 'RESOURCE_EXHAUSTED') { console.log(`${model} quota exceeded, trying next...`); continue; }
+      // 영상 URL을 지원하지 않는 모델일 수 있으니 다음 모델로 재시도
+      if (videoUrl && (data.error?.code === 400 || data.error?.status === 'INVALID_ARGUMENT')) { console.log(`${model} rejected video input, trying next...`); continue; }
+      if (data.error?.code === 401 || data.error?.code === 403 || data.error?.status === 'UNAUTHENTICATED' || data.error?.status === 'PERMISSION_DENIED') {
+        return res.status(401).json({ error: `Gemini API 키가 유효하지 않아요: ${data.error.message}` });
+      }
       if (data.error) return res.status(400).json({ error: `${data.error.message} (${model})` });
 
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
